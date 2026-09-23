@@ -89,6 +89,22 @@ Use um valor diferente para cada: `APP_ENCRYPTION_KEY`, `PROPOSAL_TOKEN_PEPPER`,
 
 ---
 
+## 2.5 Fila de processamento (fase 10) — Supabase Cron + Vercel
+O Supabase chama `POST /api/internal/jobs` a cada minuto (pg_cron + pg_net). A rota só aceita o segredo `CRON_SECRET`.
+
+1. **Gere o segredo** no seu computador: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`
+2. **Vercel → Settings → Environment Variables** (tipo *Sensitive*, ambiente Production):
+   - `CRON_SECRET` = o valor gerado
+   - `SUPABASE_SERVICE_ROLE_KEY` = Supabase → *Project Settings → API Keys* → chave **secret / service_role**
+   - Depois: *Deployments → ⋯ → Redeploy*.
+3. **Supabase → SQL Editor** (guarda URL e segredo no Vault, fora do repositório):
+   ```sql
+   select vault.create_secret('https://SEU-DOMINIO/api/internal/jobs', 'jobs_endpoint');
+   select vault.create_secret('O_MESMO_CRON_SECRET', 'cron_secret');
+   ```
+4. **Como testar:** `/api/health` deve mostrar `"jobsConfigured": true`; após 1–2 minutos, `select status_code from net._http_response order by created desc limit 5;` deve retornar `200`.
+5. **Rotação:** gere outro segredo, atualize a Vercel (redeploy) e rode `select vault.update_secret((select id from vault.secrets where name = 'cron_secret'), 'NOVO');`.
+
 ## 3. Ambientes
 | Ambiente | Supabase | Meta | Anthropic |
 |---|---|---|---|
