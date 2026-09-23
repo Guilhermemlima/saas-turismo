@@ -11,7 +11,7 @@
 | `NEXT_PUBLIC_APP_URL` | público | 1 | URL base (`http://localhost:3000` em dev). Usada em links de proposta e redirects de auth |
 | `NEXT_PUBLIC_SUPABASE_URL` | público | 1 | URL do projeto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | público | 1 | Chave pública (anon, ou a nova *publishable key* `sb_publishable_…`). Segura no browser **somente porque há RLS** |
-| `SUPABASE_SERVICE_ROLE_KEY` | **servidor** | 3 | Chave de serviço (ou nova *secret key* `sb_secret_…`). Ignora RLS — usar só no worker/webhook/admin |
+| `SUPABASE_SERVICE_ROLE_KEY` | **servidor** | 10 | Chave de serviço (ou nova *secret key* `sb_secret_…`). Ignora RLS — usada só pela fila de jobs (e depois webhook/admin); o lint impede importá-la em outro lugar |
 | `SUPABASE_DB_URL` | servidor/CLI | 1 (opcional) | String de conexão Postgres para `supabase db push`/testes; não usada pela app em runtime |
 | `APP_ENCRYPTION_KEY` | **servidor** | 15 | 32 bytes em base64 para AES-256-GCM (tokens WhatsApp, credenciais de integrações) |
 | `APP_ENCRYPTION_KEY_VERSION` | servidor | 15 | Versão da chave atual (rotação) — default `1` |
@@ -29,10 +29,7 @@
 | `META_WHATSAPP_ACCESS_TOKEN` | **servidor**, só dev | 15 | Token do número de **teste** para desenvolvimento. Em produção, tokens ficam por agência, criptografados no banco |
 | `META_WHATSAPP_PHONE_NUMBER_ID` | servidor, só dev | 15 | Phone number ID do número de teste |
 | `META_WHATSAPP_BUSINESS_ACCOUNT_ID` | servidor, só dev | 15 | WABA ID de teste |
-| `CRON_SECRET` | **servidor** | 10 (se cron externo) | Bearer exigido por `/api/internal/cron` |
-| `WORKER_ID` | worker | 10 | Identificador da instância (default hostname) |
-| `WORKER_CONCURRENCY` | worker | 10 | default `4` |
-| `WORKER_POLL_INTERVAL_MS` | worker | 10 | default `1000` |
+| `CRON_SECRET` | **servidor** | 10 | Bearer exigido por `/api/internal/jobs` (chamado pelo Supabase Cron). Também guardado no Vault do Supabase como `cron_secret` |
 | `LOG_LEVEL` | ambos | 1 | `debug`/`info`/`warn`/`error` |
 
 `src/lib/env.ts` valida tudo com Zod no boot e falha com mensagem clara indicando a variável ausente e a fase que a exige.
