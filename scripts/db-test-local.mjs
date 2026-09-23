@@ -7,10 +7,11 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = process.argv[2] ?? process.cwd();
-const db = new PGlite({ extensions: { pgcrypto } });
+const migDir = path.join(ROOT, "supabase", "migrations");
+const testDir = path.join(ROOT, "supabase", "tests", "database");
 
 // Minimal emulation of the Supabase environment.
-await db.exec(`
+const SUPABASE_STUBS = `
   create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
   create schema extensions; create schema auth;
   grant usage on schema public to anon, authenticated, service_role;
@@ -21,21 +22,10 @@ await db.exec(`
     select nullif(current_setting('request.jwt.claims', true)::json->>'sub', '')::uuid $$;
   grant usage on schema auth to anon, authenticated, service_role;
   grant execute on function auth.uid() to anon, authenticated;
-`);
-
-const migDir = path.join(ROOT, "supabase", "migrations");
-for (const file of readdirSync(migDir).sort()) {
-  try {
-    await db.exec(readFileSync(path.join(migDir, file), "utf8"));
-    console.log("migration ok:", file);
-  } catch (e) {
-    console.error("MIGRATION FAILED:", file, "\n", e.message);
-    process.exit(1);
-  }
-}
+`;
 
 // Tiny pgTAP shim: results recorded by a security definer helper.
-await db.exec(`
+const TAP_SHIM = `
   create schema tap; create table tap.results (n serial, ok boolean, description text, detail text);
   grant usage on schema tap to anon, authenticated;
   create function tap.record(p_ok boolean, p_desc text, p_detail text default null) returns text
@@ -60,27 +50,52 @@ await db.exec(`
     return tap.record(false, p_desc, format('sqlstate %s: %s', sqlstate, sqlerrm));
   end $$;
   grant execute on all functions in schema public to anon, authenticated;
-`);
+`;
 
-const testDir = path.join(ROOT, "supabase", "tests", "database");
-for (const file of readdirSync(testDir).filter((f) => f.endsWith(".sql"))) {
+async function freshDatabase() {
+  const db = new PGlite({ extensions: { pgcrypto } });
+  await db.exec(SUPABASE_STUBS);
+  for (const file of readdirSync(migDir).sort()) {
+    try {
+      await db.exec(readFileSync(path.join(migDir, file), "utf8"));
+    } catch (e) {
+      console.error("MIGRATION FAILED:", file, "\n", e.message);
+      process.exit(1);
+    }
+  }
+  await db.exec(TAP_SHIM);
+  return db;
+}
+
+let total = 0;
+let failed = 0;
+const testFiles = readdirSync(testDir).filter((f) => f.endsWith(".sql")).sort();
+
+// Each test file gets its own database so files never depend on each other's data.
+for (const file of testFiles) {
+  const db = await freshDatabase();
   const sql = readFileSync(path.join(testDir, file), "utf8")
     .replace(/create extension if not exists pgtap[^;]*;/i, "")
+    // Keep the transaction so tap.results can be read afterwards; the database is discarded anyway.
     .replace(/\brollback;\s*$/i, "commit;");
+  console.log(`
+# ${file}`);
   try {
     await db.exec(sql);
   } catch (e) {
-    console.error("TEST FILE ERROR:", file, e.message);
+    failed++;
+    console.error("TEST FILE ERROR:", e.message);
     await db.exec("rollback").catch(() => {});
   }
+  await db.exec("reset role");
+  const { rows } = await db.query("select n, ok, description, detail from tap.results order by n");
+  for (const r of rows) {
+    total++;
+    if (!r.ok) failed++;
+    console.log(`${r.ok ? "ok    " : "NOT OK"} ${r.n} - ${r.description}${r.ok ? "" : "  -> " + r.detail}`);
+  }
+  await db.close();
 }
 
-await db.exec("reset role");
-const { rows } = await db.query("select n, ok, description, detail from tap.results order by n");
-let failed = 0;
-for (const r of rows) {
-  if (!r.ok) failed++;
-  console.log(`${r.ok ? "ok    " : "NOT OK"} ${r.n} - ${r.description}${r.ok ? "" : "  -> " + r.detail}`);
-}
-console.log(`\n${rows.length - failed}/${rows.length} passed`);
+console.log(`\n${readdirSync(migDir).length} migrations · ${total - failed}/${total} passed`);
 process.exit(failed ? 1 : 0);
