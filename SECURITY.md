@@ -64,8 +64,9 @@
 | `customers.read` / `.write` | ✅ | ✅ | ✅ | ✅ | 👁³ |
 | `deals.read` / `.write` / `.move` | ✅ | ✅ | ✅² | ✅² (sem ganho/perda) | 👁 |
 | `travel_requests.write` | ✅ | ✅ | ✅ | ✅ | — |
+| `quotes.read` | ✅ | ✅ | ✅ | — | 👁 |
 | `quotes.write` | ✅ | ✅ | ✅ | — | — |
-| `quotes.view_margin` | ✅ | ✅ | configurável | — | ✅ |
+| `quotes.view_margin` | ✅ | ✅ | configurável (padrão: sim) | — | ✅ |
 | `proposals.send` | ✅ | ✅ | ✅ | — | — |
 | `bookings.write` | ✅ | ✅ | ✅ | — | 👁 |
 | `payments.write` | ✅ | ✅ | — | — | ✅ |

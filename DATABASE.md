@@ -48,7 +48,7 @@ message_status:         received | queued | sending | sent | delivered | read | 
 message_kind:           text | image | audio | video | document | location | interactive |
                         template | reaction | unsupported
 template_status:        pending | approved | rejected | paused | disabled
-quote_status:           draft | in_progress | ready | archived
+quote_status:           draft | ready | archived
 quote_item_type:        flight | hotel | transfer | tour | insurance | other
 proposal_status:        draft | ready | sent | viewed | negotiating | accepted | rejected | expired
 booking_status:         pending | confirmed | traveling | completed | cancelled
@@ -166,13 +166,14 @@ Legenda: 🔑 PK · 🔗 FK · ⭐ unique · T = tenant (tem `agency_id`)
 
 ### 3.7 Cotações, propostas, reservas, pagamentos
 
-**quotes** (T) — `id, agency_id, deal_id 🔗, travel_request_id 🔗, title, status quote_status, currency, assigned_member_id, internal_notes, created_by, created_at, updated_at`
+**quotes** (T) — `id, agency_id, deal_id 🔗, customer_id 🔗, travel_request_id 🔗, title, status quote_status, currency, assigned_member_id, internal_notes, ready_at, archived_at, created_by, created_at, updated_at`
+> `customer_id` e `travel_request_id` são derivados do deal pelo banco. Opções/itens só mudam com a cotação em `draft` (erro `55000` caso contrário). Criar cotação move o deal para `quoting`; marcar `ready` move para `quote_ready`, conclui a tarefa “Preparar cotação” e emite `quote.ready` (nunca retrocede etapa).
 
 **quote_options** (T) — `id, agency_id, quote_id 🔗, title, position, description, service_fee_cents, discount_cents,`
-`subtotal_cents, total_cents, cost_total_cents, margin_cents, commission_total_cents` (**calculados no servidor**), `created_at, updated_at`
+`subtotal_cents, total_cents, cost_total_cents, margin_cents, commission_total_cents, items_count` (**calculados pelo banco** em trigger a cada escrita de opção/item; valores enviados pelo cliente são sobrescritos; desconto > subtotal + taxa é rejeitado), `created_at, updated_at`
 
 **quote_items** (T) — `id, agency_id, quote_option_id 🔗, item_type quote_item_type, position, title, description, supplier_name, start_date, end_date, quantity smallint default 1,`
-`cost_cents, markup_cents, pass_through_fees_cents, commission_cents, price_cents` (calculado), `show_price_to_customer bool default true, details jsonb` (união discriminada Zod por tipo), `provider_ref jsonb null` (futuro: id da oferta no provedor), `created_at, updated_at`
+`cost_cents, markup_cents, pass_through_fees_cents, commission_cents` (unitários), `price_cents, total_cents` (calculados: preço unitário e × quantidade), `show_price_to_customer bool default true, details jsonb` (união discriminada Zod por tipo), `provider_ref jsonb null` (futuro: id da oferta no provedor), `created_at, updated_at`
 
 **proposals** (T) — `id, agency_id, deal_id 🔗, quote_id 🔗, version smallint, status proposal_status, token_hash bytea ⭐, included_option_ids uuid[], accepted_option_id null, snapshot jsonb` (dados voltados ao cliente, congelados), `payment_terms text, valid_until timestamptz, notes, pdf_path null, sent_at, views_count int default 0, first_viewed_at, last_viewed_at, accepted_at, rejected_at, rejection_reason, created_by, created_at, updated_at`
 > `proposal_viewed_at` do briefing = `first_viewed_at`.
@@ -380,7 +381,7 @@ Para cada tabela: usuário da agência A **não** lê/insere/atualiza/deleta dad
 
 ## 10. Migrations planejadas
 
-> Numeração real aplicada: 0001–0006 (fundação), **0007 `pipeline_and_deals`** e **0008 `travel_requests`** (antecipadas das linhas 0012/0013 abaixo). As demais seguem a ordem da tabela a partir de 0009.
+> Numeração real aplicada: 0001–0006 (fundação), **0007 `pipeline_and_deals`** e **0008 `travel_requests`** (antecipadas das linhas 0012/0013 abaixo). As demais seguem a ordem da tabela a partir de 0009. Aplicadas até agora: 0009 perfil/equipe, 0010 logos, 0011 inbox, 0012 detalhes do cliente e tarefas, 0013 jobs/eventos, **0014 `quotes`** (linha 0025 abaixo).
 
 | # | Migration | Fase |
 |---|---|---|

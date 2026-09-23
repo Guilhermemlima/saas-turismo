@@ -17,6 +17,7 @@ Lucide · Supabase (Postgres, Auth, RLS) · Zod · Vitest. Hospedagem: Vercel.
 - Onboarding: criação atômica da agência (etapa 1; demais etapas bloqueadas até suas fases)
 - **CRUD de clientes**: lista com busca e paginação, cadastro, edição, arquivar/restaurar
 - **Solicitações de viagem**: destino, datas, passageiros, orçamento, serviços e hospedagem, com checklist do que falta; cada solicitação cria um negócio no pipeline de turismo (13 etapas)
+- **Cotações**: várias opções por cotação, itens de voo, hospedagem, transfer, passeio, seguro e outros; preço, totais, desconto, margem e comissão calculados pelo banco; ao ficar pronta, o negócio avança no CRM
 - Recuperação de senha
 - Páginas estruturadas de todos os módulos futuros (sem dados fictícios)
 - Contratos para integrações futuras em `src/server/integrations` (IA independente de modelo, WhatsApp, voos, hotéis, pagamentos)
