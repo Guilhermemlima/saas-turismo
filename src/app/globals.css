@@ -51,7 +51,9 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Native controls (select dropdowns, date pickers, scrollbars) follow the active theme. */
 :root {
+  color-scheme: light;
   /* Rumo — warm neutrals with a deep petrol-teal brand and a sand accent. */
   --background: oklch(0.992 0.003 85);
   --foreground: oklch(0.21 0.018 250);
@@ -91,6 +93,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.165 0.012 250);
   --foreground: oklch(0.955 0.005 85);
   --card: oklch(0.2 0.013 250);

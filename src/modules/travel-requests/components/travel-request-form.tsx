@@ -240,7 +240,7 @@ export function TravelRequestForm({ action, defaults = {}, members, customers, s
           <FormField id="hotel_category" label="Categoria" error={errors.hotel_category} className="sm:col-span-2">
             <NativeSelect id="hotel_category" name="hotel_category" defaultValue={text("hotel_category", defaults.hotel_category)}>
               <option value="">—</option>
-              {[3, 4, 5, 2, 1].map((stars) => (
+              {[5, 4, 3, 2, 1].map((stars) => (
                 <option key={stars} value={stars}>
                   {stars} estrela{stars > 1 ? "s" : ""}
                 </option>
