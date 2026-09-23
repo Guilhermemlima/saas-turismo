@@ -1,4 +1,4 @@
-import { ArrowRight, UserPlus, Users, UsersRound } from "lucide-react";
+import { ArrowRight, Plane, UserPlus, Users, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { NAV_ITEMS } from "@/config/navigation";
 import { countCustomers } from "@/modules/customers/repository";
 import { listActiveMembers } from "@/modules/members/repository";
+import { countOpenTravelRequests } from "@/modules/travel-requests/repository";
 import { can, requireTenant } from "@/server/auth/tenant";
 import { createSupabaseServerClient } from "@/server/db/server-client";
 
@@ -30,15 +31,18 @@ export default async function DashboardPage() {
   const db = await createSupabaseServerClient();
   const canReadCustomers = can(ctx, "customers.read");
 
-  const [totalCustomers, newCustomers, members] = await Promise.all([
+  const canReadDeals = can(ctx, "deals.read");
+  const [totalCustomers, newCustomers, members, openRequests] = await Promise.all([
     canReadCustomers ? countCustomers(db, ctx) : Promise.resolve(null),
     canReadCustomers ? countCustomers(db, ctx, { createdInLastDays: 30 }) : Promise.resolve(null),
     listActiveMembers(db, ctx),
+    canReadDeals ? countOpenTravelRequests(db, ctx) : Promise.resolve(null),
   ]);
 
   const stats = [
     { label: "Clientes ativos", value: totalCustomers, icon: Users, href: "/customers" },
     { label: "Novos clientes (30 dias)", value: newCustomers, icon: UserPlus, href: "/customers" },
+    { label: "Solicitações abertas", value: openRequests, icon: Plane, href: "/requests" },
     { label: "Equipe", value: members.length, icon: UsersRound, href: "/settings" },
   ];
 
@@ -49,7 +53,7 @@ export default async function DashboardPage() {
     <PageContainer>
       <PageHeader title={`Olá, ${firstName}`} description={`Visão geral da ${ctx.agencyName}.`} />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href} className="group rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
             <Card className="transition-colors group-hover:border-primary/30">

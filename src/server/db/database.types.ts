@@ -10,6 +10,38 @@ export type AgencyStatus = "trial" | "active" | "suspended" | "cancelled";
 export type MemberStatus = "invited" | "active" | "disabled";
 export type ActorType = "user" | "ai" | "system" | "webhook" | "platform_admin";
 export type CustomerSource = "whatsapp" | "manual" | "import" | "referral" | "instagram" | "website" | "other";
+export type TripScope = "national" | "international";
+export type TripType =
+  | "leisure"
+  | "honeymoon"
+  | "family"
+  | "couple"
+  | "solo"
+  | "corporate"
+  | "cruise"
+  | "disney"
+  | "exchange"
+  | "excursion"
+  | "package"
+  | "custom";
+export type TravelRequestStatus = "collecting" | "complete" | "archived" | "cancelled";
+export type DateFlexibility = "exact" | "flexible_days" | "month_only" | "undecided";
+export type MealPlan = "room_only" | "breakfast" | "half_board" | "full_board" | "all_inclusive";
+export type BudgetScope = "total" | "per_person";
+export type StageKey =
+  | "new_contact"
+  | "qualifying"
+  | "request_complete"
+  | "quoting"
+  | "quote_ready"
+  | "proposal_sent"
+  | "followup"
+  | "negotiation"
+  | "booking"
+  | "payment"
+  | "confirmed"
+  | "post_sale"
+  | "lost";
 
 type ProfileRow = { id: string; full_name: string; avatar_url: string | null } & Timestamps;
 
@@ -82,6 +114,94 @@ type CustomerRow = {
   created_by: string | null;
 } & Timestamps;
 
+type PipelineRow = { id: string; agency_id: string; name: string; is_default: boolean } & Timestamps;
+
+type PipelineStageRow = {
+  id: string;
+  agency_id: string;
+  pipeline_id: string;
+  name: string;
+  position: number;
+  color: string;
+  system_key: StageKey | null;
+  is_won: boolean;
+  is_lost: boolean;
+  archived_at: string | null;
+} & Timestamps;
+
+type DealRow = {
+  id: string;
+  agency_id: string;
+  customer_id: string;
+  pipeline_id: string;
+  stage_id: string;
+  stage_entered_at: string;
+  assigned_member_id: string | null;
+  title: string;
+  expected_value_cents: number | null;
+  currency: string;
+  lead_score: number;
+  lost_reason: string | null;
+  won_at: string | null;
+  lost_at: string | null;
+  archived_at: string | null;
+  created_by: string | null;
+} & Timestamps;
+
+type DealStageHistoryRow = {
+  id: number;
+  agency_id: string;
+  deal_id: string;
+  from_stage_id: string | null;
+  to_stage_id: string;
+  changed_by: string | null;
+  changed_at: string;
+};
+
+type TravelRequestRow = {
+  id: string;
+  agency_id: string;
+  deal_id: string;
+  customer_id: string;
+  status: TravelRequestStatus;
+  origin_city: string | null;
+  destination: string | null;
+  trip_scope: TripScope | null;
+  trip_types: TripType[];
+  date_flexibility: DateFlexibility;
+  departure_date: string | null;
+  return_date: string | null;
+  travel_month: string | null;
+  nights: number | null;
+  adults: number | null;
+  children_ages: number[];
+  children: number;
+  infants: number;
+  budget_cents: number | null;
+  budget_currency: string;
+  budget_scope: BudgetScope | null;
+  needs_flights: boolean;
+  needs_hotel: boolean;
+  needs_transfer: boolean;
+  needs_insurance: boolean;
+  needs_tours: boolean;
+  hotel_category: number | null;
+  rooms: number | null;
+  meal_plan: MealPlan | null;
+  special_requests: string | null;
+  notes: string | null;
+  completed_at: string | null;
+  created_by: string | null;
+} & Timestamps;
+
+type Fk<Name extends string, Cols extends string[], Ref extends string, RefCols extends string[]> = {
+  foreignKeyName: Name;
+  columns: Cols;
+  isOneToOne: false;
+  referencedRelation: Ref;
+  referencedColumns: RefCols;
+};
+
 /** Columns with defaults (or nullable) become optional on insert. */
 type Insertable<Row, Required extends keyof Row> = Pick<Row, Required> & Partial<Omit<Row, Required>>;
 
@@ -134,6 +254,35 @@ export type Database = {
           },
         ]
       >;
+      pipelines: Table<PipelineRow, "agency_id" | "name">;
+      pipeline_stages: Table<
+        PipelineStageRow,
+        "agency_id" | "pipeline_id" | "name" | "position",
+        [Fk<"pipeline_stages_pipeline_fk", ["agency_id", "pipeline_id"], "pipelines", ["agency_id", "id"]>]
+      >;
+      deals: Table<
+        DealRow,
+        "agency_id" | "customer_id" | "pipeline_id" | "stage_id" | "title",
+        [
+          Fk<"deals_customer_fk", ["agency_id", "customer_id"], "customers", ["agency_id", "id"]>,
+          Fk<"deals_stage_fk", ["agency_id", "stage_id"], "pipeline_stages", ["agency_id", "id"]>,
+          Fk<"deals_pipeline_fk", ["agency_id", "pipeline_id"], "pipelines", ["agency_id", "id"]>,
+          Fk<"deals_assigned_member_fk", ["agency_id", "assigned_member_id"], "agency_members", ["agency_id", "id"]>,
+        ]
+      >;
+      deal_stage_history: Table<
+        DealStageHistoryRow,
+        "agency_id" | "deal_id" | "to_stage_id",
+        [Fk<"deal_stage_history_deal_fk", ["agency_id", "deal_id"], "deals", ["agency_id", "id"]>]
+      >;
+      travel_requests: Table<
+        TravelRequestRow,
+        "agency_id" | "deal_id" | "customer_id",
+        [
+          Fk<"travel_requests_deal_fk", ["agency_id", "deal_id"], "deals", ["agency_id", "id"]>,
+          Fk<"travel_requests_customer_fk", ["agency_id", "customer_id"], "customers", ["agency_id", "id"]>,
+        ]
+      >;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -147,6 +296,16 @@ export type Database = {
         };
         Returns: string;
       };
+      create_travel_request: {
+        Args: {
+          p_customer_id: string;
+          p_title: string;
+          p_stage_key: StageKey;
+          p_assigned_member_id: string | null;
+          p_request: Json;
+        };
+        Returns: { deal_id: string; travel_request_id: string }[];
+      };
     };
     Enums: {
       agency_role: AgencyRole;
@@ -154,6 +313,12 @@ export type Database = {
       member_status: MemberStatus;
       actor_type: ActorType;
       customer_source: CustomerSource;
+      trip_scope: TripScope;
+      trip_type: TripType;
+      travel_request_status: TravelRequestStatus;
+      date_flexibility: DateFlexibility;
+      meal_plan: MealPlan;
+      budget_scope: BudgetScope;
     };
     CompositeTypes: { [_ in never]: never };
   };

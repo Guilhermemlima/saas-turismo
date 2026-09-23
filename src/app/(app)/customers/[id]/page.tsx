@@ -1,10 +1,11 @@
-import { ArrowLeft, CalendarClock, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowLeft, CalendarClock, Mail, MapPin, Phone, Plane, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import { CreatedToast } from "@/components/shared/created-toast";
 import { PageContainer } from "@/components/shared/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +15,12 @@ import { formatDate, formatDateTime, initials } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { updateCustomerAction } from "@/modules/customers/actions";
 import { ArchiveCustomerButton } from "@/modules/customers/components/archive-customer-button";
-import { CreatedToast } from "@/modules/customers/components/created-toast";
 import { CustomerForm } from "@/modules/customers/components/customer-form";
 import { getCustomer } from "@/modules/customers/repository";
 import { CUSTOMER_SOURCE_LABELS } from "@/modules/customers/schemas";
 import { listActiveMembers } from "@/modules/members/repository";
+import { RequestsTable } from "@/modules/travel-requests/components/requests-table";
+import { listCustomerTravelRequests } from "@/modules/travel-requests/repository";
 import { can, requireTenant } from "@/server/auth/tenant";
 import { createSupabaseServerClient } from "@/server/db/server-client";
 
@@ -26,7 +28,6 @@ export const metadata: Metadata = { title: "Cliente" };
 
 const HISTORY = [
   { title: "Conversas", phase: 9 },
-  { title: "Solicitações de viagem", phase: 7 },
   { title: "Cotações e propostas", phase: 16 },
   { title: "Reservas e viagens", phase: 20 },
   { title: "Tarefas e notas", phase: 22 },
@@ -41,7 +42,11 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
   if (!z.uuid().safeParse(id).success) notFound();
 
   const db = await createSupabaseServerClient();
-  const [customer, members] = await Promise.all([getCustomer(db, ctx, id), listActiveMembers(db, ctx)]);
+  const [customer, members, requests] = await Promise.all([
+    getCustomer(db, ctx, id),
+    listActiveMembers(db, ctx),
+    can(ctx, "deals.read") ? listCustomerTravelRequests(db, ctx, id) : Promise.resolve([]),
+  ]);
   if (!customer) notFound();
 
   const canWrite = can(ctx, "customers.write");
@@ -51,7 +56,7 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
   return (
     <PageContainer>
       <Suspense>
-        <CreatedToast />
+        <CreatedToast message="Cliente cadastrado." />
       </Suspense>
       <Link href="/customers" className={buttonVariants({ variant: "ghost", size: "sm", className: "-ml-2 w-fit" })}>
         <ArrowLeft /> Clientes
@@ -91,6 +96,28 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
         </div>
         {can(ctx, "customers.archive") ? <ArchiveCustomerButton customerId={customer.id} archived={archived} /> : null}
       </div>
+
+      {can(ctx, "deals.read") ? (
+        <section className="grid gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <Plane className="size-4 text-muted-foreground" /> Solicitações de viagem
+            </h2>
+            {can(ctx, "requests.write") && !archived ? (
+              <Link href={`/requests/new?customer=${customer.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Plus /> Nova solicitação
+              </Link>
+            ) : null}
+          </div>
+          {requests.length > 0 ? (
+            <RequestsTable items={requests} showCustomer={false} />
+          ) : (
+            <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+              Nenhuma solicitação para este cliente ainda.
+            </p>
+          )}
+        </section>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">

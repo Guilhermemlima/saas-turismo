@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListFilters } from "@/components/shared/list-filters";
 import { PageContainer, PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
 import { buttonVariants } from "@/components/ui/button";
-import { CustomerFilters } from "@/modules/customers/components/customer-filters";
 import { CustomersTable } from "@/modules/customers/components/customers-table";
 import { listCustomers } from "@/modules/customers/repository";
 import { CUSTOMERS_PAGE_SIZE, customerListQuerySchema } from "@/modules/customers/schemas";
@@ -50,7 +50,16 @@ export default async function CustomersPage(props: PageProps<"/customers">) {
       />
 
       <Suspense>
-        <CustomerFilters q={query.q} status={query.status} />
+        <ListFilters
+          q={query.q}
+          status={query.status}
+          defaultStatus="active"
+          placeholder="Nome, e-mail ou telefone"
+          tabs={[
+            { value: "active", label: "Ativos" },
+            { value: "archived", label: "Arquivados" },
+          ]}
+        />
       </Suspense>
 
       {items.length > 0 ? (
