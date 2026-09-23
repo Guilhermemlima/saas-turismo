@@ -216,6 +216,63 @@ type DomainEventRow = {
   dispatched_at: string | null;
 };
 
+export type QuoteStatus = "draft" | "ready" | "archived";
+export type QuoteItemType = "flight" | "hotel" | "transfer" | "tour" | "insurance" | "other";
+
+type QuoteRow = {
+  id: string;
+  agency_id: string;
+  deal_id: string;
+  customer_id: string;
+  travel_request_id: string | null;
+  title: string;
+  status: QuoteStatus;
+  currency: string;
+  internal_notes: string | null;
+  assigned_member_id: string | null;
+  ready_at: string | null;
+  created_by: string | null;
+} & Timestamps;
+
+type QuoteOptionRow = {
+  id: string;
+  agency_id: string;
+  quote_id: string;
+  title: string;
+  description: string | null;
+  position: number;
+  service_fee_cents: number;
+  discount_cents: number;
+  items_price_cents: number;
+  items_cost_cents: number;
+  markup_cents: number;
+  fees_cents: number;
+  commission_cents: number;
+  total_cents: number;
+  margin_cents: number;
+} & Timestamps;
+
+type QuoteItemRow = {
+  id: string;
+  agency_id: string;
+  option_id: string;
+  item_type: QuoteItemType;
+  position: number;
+  title: string;
+  description: string | null;
+  supplier_name: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  quantity: number;
+  unit_cost_cents: number;
+  unit_markup_cents: number;
+  unit_fees_cents: number;
+  commission_cents: number;
+  price_cents: number;
+  show_price_to_customer: boolean;
+  details: Json;
+} & Timestamps;
+
 type ProfileRow = { id: string; full_name: string; email: string | null; avatar_url: string | null } & Timestamps;
 
 type AgencyRow = {
@@ -460,6 +517,25 @@ export type Database = {
         [Fk<"messages_conversation_fk", ["agency_id", "conversation_id"], "conversations", ["agency_id", "id"]>]
       >;
       notifications: Table<NotificationRow, "agency_id" | "user_id" | "type" | "title">;
+      quotes: Table<
+        QuoteRow,
+        "agency_id" | "deal_id" | "customer_id" | "title",
+        [
+          Fk<"quotes_customer_fk", ["agency_id", "customer_id"], "customers", ["agency_id", "id"]>,
+          Fk<"quotes_deal_fk", ["agency_id", "deal_id"], "deals", ["agency_id", "id"]>,
+          Fk<"quotes_travel_request_fk", ["agency_id", "travel_request_id"], "travel_requests", ["agency_id", "id"]>,
+        ]
+      >;
+      quote_options: Table<
+        QuoteOptionRow,
+        "agency_id" | "quote_id" | "title",
+        [Fk<"quote_options_quote_fk", ["agency_id", "quote_id"], "quotes", ["agency_id", "id"]>]
+      >;
+      quote_items: Table<
+        QuoteItemRow,
+        "agency_id" | "option_id" | "item_type" | "title",
+        [Fk<"quote_items_option_fk", ["agency_id", "option_id"], "quote_options", ["agency_id", "id"]>]
+      >;
       jobs: Table<JobRow, "type">;
       domain_events: Table<DomainEventRow, "agency_id" | "type" | "aggregate_type" | "aggregate_id">;
       tags: Table<TagRow, "agency_id" | "name">;

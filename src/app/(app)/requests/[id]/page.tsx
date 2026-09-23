@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarRange, Users, Wallet } from "lucide-react";
+import { ArrowLeft, CalendarRange, Receipt, Users, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -14,6 +14,9 @@ import { formatDateTime } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
 import { listActiveMembers } from "@/modules/members/repository";
+import { CreateQuoteButton } from "@/modules/quotes/components/create-quote-button";
+import { QuoteStatusBadge } from "@/modules/quotes/components/quote-status-badge";
+import { listQuotes } from "@/modules/quotes/repository";
 import { updateTravelRequestAction } from "@/modules/travel-requests/actions";
 import { ArchiveRequestButton } from "@/modules/travel-requests/components/archive-request-button";
 import { RequestStatusBadge, StageBadge } from "@/modules/travel-requests/components/badges";
@@ -37,6 +40,8 @@ export default async function RequestPage(props: PageProps<"/requests/[id]">) {
   const db = await createSupabaseServerClient();
   const [request, members] = await Promise.all([getTravelRequest(db, ctx, id), listActiveMembers(db, ctx)]);
   if (!request) notFound();
+  const canQuote = can(ctx, "quotes.write");
+  const quotes = canQuote || can(ctx, "quotes.view_margin") ? await listQuotes(db, ctx, { status: "open", dealId: request.deal_id }) : [];
 
   const canWrite = can(ctx, "requests.write");
   const closed = request.status === "archived" || request.status === "cancelled";
@@ -126,6 +131,36 @@ export default async function RequestPage(props: PageProps<"/requests/[id]">) {
         </Card>
 
         <div className="flex flex-col gap-6">
+          {canQuote || quotes.length ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="size-4" /> Cotações
+                </CardTitle>
+                <CardDescription>
+                  {request.status === "complete" ? "Monte as opções para o cliente." : "Você pode começar mesmo com dados incompletos."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {quotes.map((q) => {
+                  const totals = q.options.map((o) => o.total_cents).filter((t) => t > 0);
+                  return (
+                    <Link key={q.id} href={`/quotes/${q.id}`} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted">
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{q.title}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {q.options.length} opç{q.options.length === 1 ? "ão" : "ões"}
+                          {totals.length ? ` · a partir de ${formatMoney(Math.min(...totals), q.currency)}` : ""}
+                        </span>
+                      </span>
+                      <QuoteStatusBadge status={q.status} />
+                    </Link>
+                  );
+                })}
+                {canQuote && !closed ? <CreateQuoteButton requestId={request.id} variant={quotes.length ? "outline" : "default"} /> : null}
+              </CardContent>
+            </Card>
+          ) : null}
           <CompletenessCard request={request} />
           <Card>
             <CardHeader>

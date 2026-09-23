@@ -39,6 +39,7 @@ const ROLE_PERMISSIONS: Record<AgencyRole, readonly Permission[]> = {
     "requests.write",
     "tasks.write",
     "quotes.write",
+    "quotes.view_margin",
     "reports.view",
   ],
   attendant: ["customers.read", "customers.write", "conversations.read", "deals.read", "deals.write", "requests.write", "tasks.write"],
