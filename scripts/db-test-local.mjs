@@ -43,6 +43,8 @@ const TAP_SHIM = `
   create function public.finish() returns setof text language sql as $$ select 'done'::text $$;
   create function public.is(anyelement, anyelement, text) returns text language sql as $$
     select tap.record($1 is not distinct from $2, $3, format('got %s, expected %s', $1, $2)) $$;
+  create function public.isnt(anyelement, anyelement, text) returns text language sql as $$
+    select tap.record($1 is distinct from $2, $3, format('got %s, expected anything else', $1)) $$;
   create function public.throws_ok(p_sql text, p_code text, p_msg text, p_desc text) returns text language plpgsql as $$
   begin
     execute p_sql;

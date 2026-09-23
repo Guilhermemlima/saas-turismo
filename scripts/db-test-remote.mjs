@@ -20,7 +20,7 @@ function instrument(sql) {
         "grant usage on sequence tap_out_n_seq to public;",
       ].join("\n"),
     )
-    .replace(/^select (is|throws_ok|lives_ok)\(/gm, (_m, fn) => `insert into tap_out (line) select ${fn}(`)
+    .replace(/^select (is|isnt|throws_ok|lives_ok)\(/gm, (_m, fn) => `insert into tap_out (line) select ${fn}(`)
     .replace(/select \* from finish\(\);\s*rollback;\s*$/, () =>
       [
         "reset role;",
