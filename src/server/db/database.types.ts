@@ -180,7 +180,41 @@ type TaskRow = {
   created_by_actor: ActorType;
   created_by: string | null;
   completed_at: string | null;
+  overdue_notified_at: string | null;
 } & Timestamps;
+
+export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "dead";
+
+type JobRow = {
+  id: string;
+  agency_id: string | null;
+  type: string;
+  payload: Json;
+  status: JobStatus;
+  priority: number;
+  run_at: string;
+  attempts: number;
+  max_attempts: number;
+  dedupe_key: string | null;
+  locked_by: string | null;
+  locked_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  finished_at: string | null;
+};
+
+type DomainEventRow = {
+  id: string;
+  agency_id: string;
+  type: string;
+  aggregate_type: string;
+  aggregate_id: string;
+  payload: Json;
+  actor_type: ActorType;
+  actor_id: string | null;
+  occurred_at: string;
+  dispatched_at: string | null;
+};
 
 type ProfileRow = { id: string; full_name: string; email: string | null; avatar_url: string | null } & Timestamps;
 
@@ -426,6 +460,8 @@ export type Database = {
         [Fk<"messages_conversation_fk", ["agency_id", "conversation_id"], "conversations", ["agency_id", "id"]>]
       >;
       notifications: Table<NotificationRow, "agency_id" | "user_id" | "type" | "title">;
+      jobs: Table<JobRow, "type">;
+      domain_events: Table<DomainEventRow, "agency_id" | "type" | "aggregate_type" | "aggregate_id">;
       tags: Table<TagRow, "agency_id" | "name">;
       customer_tags: Table<
         CustomerTagRow,
@@ -489,6 +525,22 @@ export type Database = {
         Args: { p_token_hash: string };
         Returns: { agency_name: string; role: AgencyRole; email: string; status: "pending" | "accepted" | "expired" | "revoked" }[];
       };
+      enqueue_job: {
+        Args: {
+          p_type: string;
+          p_payload?: Json;
+          p_agency_id?: string | null;
+          p_run_at?: string;
+          p_dedupe_key?: string | null;
+          p_max_attempts?: number;
+          p_priority?: number;
+        };
+        Returns: string | null;
+      };
+      claim_jobs: { Args: { p_worker: string; p_limit?: number; p_lock_seconds?: number }; Returns: JobRow[] };
+      complete_job: { Args: { p_id: string }; Returns: undefined };
+      fail_job: { Args: { p_id: string; p_error: string; p_retryable?: boolean }; Returns: JobStatus | null };
+      claim_domain_events: { Args: { p_limit?: number }; Returns: DomainEventRow[] };
       start_simulated_conversation: { Args: { p_customer_id: string }; Returns: string };
       post_conversation_message: { Args: { p_conversation_id: string; p_body: string; p_as_customer?: boolean }; Returns: string };
       accept_invitation: { Args: { p_token_hash: string }; Returns: string };

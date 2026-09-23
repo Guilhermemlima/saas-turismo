@@ -1,6 +1,7 @@
 /** Paths reachable without a session. Everything else requires login. */
 const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/setup", "/api/health"];
-const PUBLIC_PREFIXES = ["/auth/", "/proposal/", "/api/webhooks/"];
+// /api/internal/* authenticates machine callers with a bearer secret instead of a session.
+const PUBLIC_PREFIXES = ["/auth/", "/proposal/", "/api/webhooks/", "/api/internal/"];
 
 export function isPublicPath(pathname: string): boolean {
   return (
