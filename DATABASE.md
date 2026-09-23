@@ -380,6 +380,8 @@ Para cada tabela: usuário da agência A **não** lê/insere/atualiza/deleta dad
 
 ## 10. Migrations planejadas
 
+> Numeração real aplicada: 0001–0006 (fundação), **0007 `pipeline_and_deals`** e **0008 `travel_requests`** (antecipadas das linhas 0012/0013 abaixo). As demais seguem a ordem da tabela a partir de 0009.
+
 | # | Migration | Fase |
 |---|---|---|
 | 0001 | `extensions_and_schemas` — pgcrypto, `private` schema, `set_updated_at()`, `prevent_agency_change()` | 1 |

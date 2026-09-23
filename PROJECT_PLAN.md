@@ -1,6 +1,6 @@
 # PROJECT_PLAN.md — SaaS de IA para Agências de Viagens
 
-> **Estado atual (2026-09-23):** fundação entregue — fases 1, 2, 3 e parte de 4, 5 e 6 (ver §9).
+> **Estado atual (2026-09-23):** fundação + solicitações de viagem entregues — fases 1, 2, 3, 7 e parte de 4, 5, 6 e 8 (ver §9). Produção: https://saas-turismo-ivory.vercel.app
 > IA e WhatsApp adiados por decisão do usuário; hospedagem na Vercel; Supabase como banco principal
 > (migração para Docker/self-hosted avaliada perto do fim do projeto).
 > Referências: [ARCHITECTURE.md](ARCHITECTURE.md) · [DATABASE.md](DATABASE.md) · [SECURITY.md](SECURITY.md) · [ENVIRONMENT.md](ENVIRONMENT.md)
@@ -357,11 +357,17 @@ Fases **1 → 17** entregam o ciclo **WhatsApp → IA qualifica → CRM → cota
 | 4 | 🟡 parcial | 2026-09-23 | etapa 1 (criação atômica da agência). Pendentes: logo, equipe/convites, especialidades, horários |
 | 5 | 🟡 parcial | 2026-09-23 | sidebar, header, páginas estruturadas dos módulos, dashboard com KPIs reais disponíveis |
 | 6 | 🟡 parcial | 2026-09-23 | CRUD de clientes (busca, paginação, arquivar/restaurar). Pendentes: tags, notas, preferências, viajantes |
-| 7–30 | ⏳ não iniciada | — | IA (11–14) e WhatsApp (15) aguardam decisão de modelo e credenciais |
+| 7 | ✅ concluída | 2026-09-23 | migrations 0007–0008: pipeline de 13 etapas (semeado por agência), deals, histórico de etapas, solicitações 1:1 com deal, RPC `create_travel_request`; checklist determinístico de completude; avanço automático para “Solicitação completa”; telas de lista, criação e edição; 34/34 testes de banco no Supabase real |
+| 8 | 🟡 parcial | 2026-09-23 | base de dados do CRM pronta (pipelines, deals, histórico). Pendentes: Kanban, personalização de etapas, lead score, temperatura, tarefas |
+| 9–30 | ⏳ não iniciada | — | IA (11–14) e WhatsApp (15) aguardam decisão de modelo e credenciais |
 
 ### Decisões registradas
 - D1 `agency_id` ✅ · D5 Vercel ✅ · D6 Supabase na nuvem (sem Docker agora) ✅ · D13 dependências: vitest, libphonenumber-js, @electric-sql/pglite (dev, testes de RLS) ✅
 - D2/D3 modelo de IA: **em aberto** — a camada `src/server/integrations` é independente de modelo.
+
+### Pendências
+- ⚠️ **Confirmação de e-mail desligada** no Supabase (a pedido, para testes). Antes de agências reais: configurar SMTP próprio (ex.: Resend) e religar *Confirm email* — o SMTP padrão do Supabase limita a 2 e-mails/hora.
+- Viajantes nominais (`travelers`) ficam para a fase de reservas; a solicitação guarda a composição declarada (adultos, idades das crianças, bebês).
 
 ### Pendências de verificação
 - ✅ 2026-09-23: migrations 0001–0006 aplicadas no Supabase real (`db push`) e 20/20 testes de isolamento executados no banco real com rollback forçado (sem dados residuais). `supabase test db` exige Docker; sem ele, os testes rodam via `supabase db query --linked`.
