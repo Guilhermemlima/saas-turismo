@@ -364,5 +364,6 @@ Fases **1 → 17** entregam o ciclo **WhatsApp → IA qualifica → CRM → cota
 - D2/D3 modelo de IA: **em aberto** — a camada `src/server/integrations` é independente de modelo.
 
 ### Pendências de verificação
-- As migrations foram validadas em PGlite (Postgres 17 embutido, com emulação do schema `auth`). Rodar `npm run db:push` + `npm run db:test` no projeto Supabase real assim que as credenciais existirem.
+- ✅ 2026-09-23: migrations 0001–0006 aplicadas no Supabase real (`db push`) e 20/20 testes de isolamento executados no banco real com rollback forçado (sem dados residuais). `supabase test db` exige Docker; sem ele, os testes rodam via `supabase db query --linked`.
+- Security advisor do Supabase: `create_agency_with_owner` executável por `authenticated` é intencional (RPC do onboarding). `public.rls_auto_enable()` vem do template do projeto Supabase (não é nossa); retorna `event_trigger`, então não pode ser chamada via RPC.
 - O fluxo autenticado (dashboard, CRUD) ainda não foi exercitado ponta a ponta contra um Supabase real.
