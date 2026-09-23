@@ -4,6 +4,8 @@ import type { TenantContext } from "@/server/auth/tenant";
 import type { StageKey, Tables } from "@/server/db/database.types";
 import type { SupabaseServerClient } from "@/server/db/server-client";
 
+import { scoreLead } from "@/modules/deals/scoring";
+
 import { isRequestComplete } from "./completeness";
 import { PRE_QUALIFICATION_STAGES } from "./labels";
 import { REQUESTS_PAGE_SIZE, type RequestListQuery, type TravelRequestInput } from "./schemas";
@@ -135,6 +137,13 @@ export async function createTravelRequest(
     })
     .single();
   if (error) raise(error);
+
+  const { error: scoreError } = await db
+    .from("deals")
+    .update({ lead_score: scoreLead(columns).total })
+    .eq("agency_id", ctx.agencyId)
+    .eq("id", data.deal_id);
+  if (scoreError) raise(scoreError);
   return data;
 }
 
@@ -153,9 +162,10 @@ export async function updateTravelRequest(
   const { error } = await db.from("travel_requests").update(columns).eq("agency_id", ctx.agencyId).eq("id", current.id);
   if (error) raise(error);
 
-  const dealUpdate: { title: string; assigned_member_id: string | null; stage_id?: string } = {
+  const dealUpdate: { title: string; assigned_member_id: string | null; lead_score: number; stage_id?: string } = {
     title: dealTitle(input, current.customer?.full_name ?? "Cliente"),
     assigned_member_id: input.assigned_member_id,
+    lead_score: scoreLead(columns).total,
   };
 
   const stageKey = current.deal?.stage?.system_key;
