@@ -1,6 +1,6 @@
 # PROJECT_PLAN.md — SaaS de IA para Agências de Viagens
 
-> **Estado atual (2026-09-23):** fundação, solicitações de viagem e CRM Kanban entregues — fases 1, 2, 3, 7, quase toda a 8 e parte de 4, 5 e 6 (ver §9). Produção: https://saas-turismo-ivory.vercel.app
+> **Estado atual (2026-09-23):** fundação, onboarding/equipe, solicitações de viagem e CRM Kanban entregues — fases 1, 2, 3, 4, 7, quase toda a 8 e parte de 5 e 6 (ver §9). Produção: https://saas-turismo-ivory.vercel.app
 > IA e WhatsApp adiados por decisão do usuário; hospedagem na Vercel; Supabase como banco principal
 > (migração para Docker/self-hosted avaliada perto do fim do projeto).
 > Referências: [ARCHITECTURE.md](ARCHITECTURE.md) · [DATABASE.md](DATABASE.md) · [SECURITY.md](SECURITY.md) · [ENVIRONMENT.md](ENVIRONMENT.md)
@@ -354,7 +354,7 @@ Fases **1 → 17** entregam o ciclo **WhatsApp → IA qualifica → CRM → cota
 | 1 | ✅ concluída | 2026-09-23 | Next.js 16 + Supabase + shadcn/ui (Base UI), tema claro/escuro, lint/typecheck/test/build |
 | 2 | ✅ concluída | 2026-09-23 | cadastro com confirmação de e-mail, login, logout, `proxy.ts` protegendo rotas |
 | 3 | ✅ concluída | 2026-09-23 | migrations 0001–0006, RLS forçada, RBAC, auditoria; 20/20 testes de isolamento (PGlite) |
-| 4 | 🟡 parcial | 2026-09-23 | etapa 1 (criação atômica da agência). Pendentes: logo, equipe/convites, especialidades, horários |
+| 4 | ✅ concluída | 2026-09-23 | etapas 1–4: dados da agência (CNPJ validado, site, Instagram), upload de logo (bucket público, escrita restrita por RLS, tipo validado por assinatura do arquivo), especialidades, horários com fuso; equipe com convite por link (token 256 bits, só o hash no banco, 7 dias, uso único, vinculado ao e-mail), troca de perfil/desativação auditadas, proteção do último dono; progresso de onboarding no dashboard. Etapas 5–8 liberam nas fases de IA/WhatsApp |
 | 5 | 🟡 parcial | 2026-09-23 | sidebar, header, páginas estruturadas dos módulos, dashboard com KPIs reais disponíveis |
 | 6 | 🟡 parcial | 2026-09-23 | CRUD de clientes (busca, paginação, arquivar/restaurar). Pendentes: tags, notas, preferências, viajantes |
 | 7 | ✅ concluída | 2026-09-23 | migrations 0007–0008: pipeline de 13 etapas (semeado por agência), deals, histórico de etapas, solicitações 1:1 com deal, RPC `create_travel_request`; checklist determinístico de completude; avanço automático para “Solicitação completa”; telas de lista, criação e edição; 34/34 testes de banco no Supabase real |
