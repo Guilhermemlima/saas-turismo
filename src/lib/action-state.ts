@@ -8,6 +8,8 @@ export type ActionState = {
   fieldErrors?: FieldErrors;
   /** Echo of submitted values so forms keep user input after a validation error. */
   values?: Record<string, string>;
+  /** Extra data returned to the client, e.g. a one-time invitation link. */
+  payload?: Record<string, string>;
 };
 
 export const initialActionState: ActionState = { status: "idle" };

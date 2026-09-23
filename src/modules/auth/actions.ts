@@ -75,7 +75,7 @@ export async function signUpAction(_prev: ActionState, formData: FormData): Prom
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.full_name },
-      emailRedirectTo: `${getAppUrl()}/auth/callback?next=/onboarding`,
+      emailRedirectTo: `${getAppUrl()}/auth/callback?next=${encodeURIComponent(safeNextPath(values.next, "/onboarding"))}`,
     },
   });
 
@@ -94,7 +94,7 @@ export async function signUpAction(_prev: ActionState, formData: FormData): Prom
       message: "Conta criada! Enviamos um link de confirmação para o seu e-mail.",
     };
   }
-  redirect("/onboarding");
+  redirect(safeNextPath(values.next, "/onboarding"));
 }
 
 export async function signOutAction(): Promise<void> {

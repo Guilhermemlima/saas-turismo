@@ -1,4 +1,4 @@
-import { ArrowRight, Plane, UserPlus, Users, UsersRound } from "lucide-react";
+import { ArrowRight, CircleCheck, CircleDashed, Lock, Plane, UserPlus, Users, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NAV_ITEMS } from "@/config/navigation";
+import { cn } from "@/lib/utils";
+import { onboardingProgress } from "@/modules/agencies/onboarding";
 import { countCustomers } from "@/modules/customers/repository";
 import { listActiveMembers } from "@/modules/members/repository";
 import { countOpenTravelRequests } from "@/modules/travel-requests/repository";
@@ -32,12 +34,15 @@ export default async function DashboardPage() {
   const canReadCustomers = can(ctx, "customers.read");
 
   const canReadDeals = can(ctx, "deals.read");
-  const [totalCustomers, newCustomers, members, openRequests] = await Promise.all([
+  const [totalCustomers, newCustomers, members, openRequests, { data: agency }] = await Promise.all([
     canReadCustomers ? countCustomers(db, ctx) : Promise.resolve(null),
     canReadCustomers ? countCustomers(db, ctx, { createdInLastDays: 30 }) : Promise.resolve(null),
     listActiveMembers(db, ctx),
     canReadDeals ? countOpenTravelRequests(db, ctx) : Promise.resolve(null),
+    db.from("agencies").select("onboarding_completed_steps").eq("id", ctx.agencyId).maybeSingle(),
   ]);
+  const onboarding = onboardingProgress(agency?.onboarding_completed_steps ?? []);
+  const showOnboarding = !onboarding.allAvailableDone && can(ctx, "settings.manage");
 
   const stats = [
     { label: "Clientes ativos", value: totalCustomers, icon: Users, href: "/customers" },
@@ -52,6 +57,57 @@ export default async function DashboardPage() {
   return (
     <PageContainer>
       <PageHeader title={`Olá, ${firstName}`} description={`Visão geral da ${ctx.agencyName}.`} />
+
+      {showOnboarding ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between gap-2">
+              Primeiros passos
+              <span className="text-sm font-medium text-muted-foreground tabular-nums">
+                {onboarding.completedAvailable}/{onboarding.totalAvailable}
+              </span>
+            </CardTitle>
+            <CardDescription>Complete a configuração da agência. As etapas de IA e WhatsApp liberam nas próximas fases.</CardDescription>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${(onboarding.completedAvailable / onboarding.totalAvailable) * 100}%` }}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {onboarding.steps.map((step) => {
+                const locked = step.phase !== null;
+                const content = (
+                  <>
+                    {step.done ? (
+                      <CircleCheck className="size-4 shrink-0 text-success" />
+                    ) : locked ? (
+                      <Lock className="size-4 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <CircleDashed className="size-4 shrink-0 text-primary" />
+                    )}
+                    <span className={cn("flex-1", step.done && "text-muted-foreground line-through")}>{step.title}</span>
+                    {locked ? <Badge variant="outline">Fase {step.phase}</Badge> : null}
+                  </>
+                );
+                return (
+                  <li key={step.step}>
+                    {locked || step.done ? (
+                      <div className="flex h-full items-center gap-2 rounded-lg border px-3 py-2 text-sm text-muted-foreground">{content}</div>
+                    ) : (
+                      <Link href={step.href} className="flex h-full items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:border-primary/40 hover:bg-accent">
+                        {content}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (

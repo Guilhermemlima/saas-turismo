@@ -16,6 +16,7 @@ export type Membership = {
   agencyId: string;
   agencyName: string;
   agencyStatus: AgencyStatus;
+  agencyLogoPath: string | null;
   role: AgencyRole;
 };
 
@@ -44,7 +45,7 @@ export const getMemberships = cache(async (userId: string): Promise<Membership[]
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("agency_members")
-    .select("id, role, agency_id, agencies ( name, status )")
+    .select("id, role, agency_id, agencies ( name, status, logo_path )")
     .eq("user_id", userId)
     .eq("status", "active")
     .order("created_at", { ascending: true });
@@ -59,6 +60,7 @@ export const getMemberships = cache(async (userId: string): Promise<Membership[]
             agencyId: row.agency_id,
             agencyName: row.agencies.name,
             agencyStatus: row.agencies.status,
+            agencyLogoPath: row.agencies.logo_path,
             role: row.role,
           },
         ]

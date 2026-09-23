@@ -17,7 +17,7 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui
 import { APP_NAME } from "@/config/app";
 import { switchAgencyAction } from "@/modules/agencies/actions";
 
-export type AgencyOption = { id: string; name: string; roleLabel: string };
+export type AgencyOption = { id: string; name: string; roleLabel: string; logoUrl: string | null };
 
 export function AgencySwitcher({ agencies, activeAgencyId }: { agencies: AgencyOption[]; activeAgencyId: string }) {
   const [pending, startTransition] = useTransition();
@@ -32,9 +32,16 @@ export function AgencySwitcher({ agencies, activeAgencyId }: { agencies: AgencyO
               <SidebarMenuButton size="lg" className="data-popup-open:bg-sidebar-accent" disabled={pending} />
             }
           >
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              <Compass className="size-4" />
-            </div>
+            {active?.logoUrl ? (
+              <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg border bg-background">
+                {/* eslint-disable-next-line @next/next/no-img-element -- small public logo */}
+                <img src={active.logoUrl} alt="" className="size-full object-contain p-0.5" />
+              </div>
+            ) : (
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <Compass className="size-4" />
+              </div>
+            )}
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-semibold">{active?.name ?? APP_NAME}</span>
               <span className="truncate text-xs text-muted-foreground">{active?.roleLabel}</span>

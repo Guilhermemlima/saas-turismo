@@ -52,7 +52,7 @@ export function SignInForm({ next }: { next?: string }) {
   );
 }
 
-export function SignUpForm() {
+export function SignUpForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signUpAction, initialActionState);
   const errors = state.fieldErrors ?? {};
 
@@ -68,6 +68,7 @@ export function SignUpForm() {
 
   return (
     <form action={action} className="grid gap-4" noValidate key={JSON.stringify(state.values ?? {})}>
+      <input type="hidden" name="next" value={next ?? ""} />
       <FormField id="full_name" label="Seu nome" error={errors.full_name}>
         <Input id="full_name" name="full_name" autoComplete="name" defaultValue={state.values?.full_name} required autoFocus />
       </FormField>

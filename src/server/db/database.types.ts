@@ -43,7 +43,7 @@ export type StageKey =
   | "post_sale"
   | "lost";
 
-type ProfileRow = { id: string; full_name: string; avatar_url: string | null } & Timestamps;
+type ProfileRow = { id: string; full_name: string; email: string | null; avatar_url: string | null } & Timestamps;
 
 type AgencyRow = {
   id: string;
@@ -61,7 +61,23 @@ type AgencyRow = {
   status: AgencyStatus;
   onboarding_completed_steps: number[];
   onboarding_completed_at: string | null;
+  specialties: TripType[];
+  specialty_scopes: TripScope[];
 } & Timestamps;
+
+type AgencyInvitationRow = {
+  id: string;
+  agency_id: string;
+  email: string;
+  role: AgencyRole;
+  token_hash: string;
+  invited_by: string;
+  expires_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
+  revoked_at: string | null;
+  created_at: string;
+};
 
 type AgencySettingsRow = {
   agency_id: string;
@@ -254,6 +270,7 @@ export type Database = {
           },
         ]
       >;
+      agency_invitations: Table<AgencyInvitationRow, "agency_id" | "email" | "role" | "token_hash" | "invited_by">;
       pipelines: Table<PipelineRow, "agency_id" | "name">;
       pipeline_stages: Table<
         PipelineStageRow,
@@ -296,6 +313,12 @@ export type Database = {
         };
         Returns: string;
       };
+      get_invitation: {
+        Args: { p_token_hash: string };
+        Returns: { agency_name: string; role: AgencyRole; email: string; status: "pending" | "accepted" | "expired" | "revoked" }[];
+      };
+      accept_invitation: { Args: { p_token_hash: string }; Returns: string };
+      mark_onboarding_step: { Args: { p_agency: string; p_step: number }; Returns: undefined };
       create_travel_request: {
         Args: {
           p_customer_id: string;

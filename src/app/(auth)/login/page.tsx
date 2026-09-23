@@ -25,7 +25,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
       <SignInForm next={next || undefined} />
       <p className="text-center text-sm text-muted-foreground">
         Ainda não tem conta?{" "}
-        <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
+        <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-foreground underline-offset-4 hover:underline">
           Criar conta
         </Link>
       </p>

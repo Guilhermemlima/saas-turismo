@@ -51,6 +51,14 @@ export const ROLE_LABELS: Record<AgencyRole, string> = {
   financial: "Financeiro",
 };
 
+export const ROLE_DESCRIPTIONS: Record<AgencyRole, string> = {
+  owner: "Tudo, incluindo dados da agência e equipe",
+  manager: "Operação completa, equipe e configurações",
+  consultant: "Atendimento, CRM, solicitações e cotações",
+  attendant: "Atendimento e qualificação, sem valores",
+  financial: "Reservas, pagamentos e relatórios",
+};
+
 export function permissionsFor(role: AgencyRole): ReadonlySet<Permission> {
   return new Set(ROLE_PERMISSIONS[role]);
 }

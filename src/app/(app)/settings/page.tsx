@@ -1,14 +1,11 @@
-import { ArrowRight, KanbanSquare, Plug } from "lucide-react";
+import { ArrowRight, Building2, Clock, KanbanSquare, Plug, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageContainer, PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ROLE_LABELS } from "@/lib/permissions";
-import { formatPhone } from "@/lib/phone";
-import { listActiveMembers } from "@/modules/members/repository";
+import { publicStorageUrl } from "@/lib/storage";
 import { can, requireTenant } from "@/server/auth/tenant";
 import { createSupabaseServerClient } from "@/server/db/server-client";
 import { getIntegrationStatuses } from "@/server/integrations/registry";
@@ -20,89 +17,54 @@ const STATUS_LABELS = { trial: "Período de teste", active: "Ativa", suspended: 
 export default async function SettingsPage() {
   const ctx = await requireTenant();
   const db = await createSupabaseServerClient();
-  const [{ data: agency }, members] = await Promise.all([
-    db
-      .from("agencies")
-      .select("name, email, phone_e164, city, state, status, created_at")
-      .eq("id", ctx.agencyId)
-      .single(),
-    listActiveMembers(db, ctx),
-  ]);
+  const { data: agency } = await db.from("agencies").select("name, status, logo_path, city, state").eq("id", ctx.agencyId).single();
+  const logoUrl = publicStorageUrl("agency-logos", agency?.logo_path);
 
-  const details = [
-    { label: "Nome", value: agency?.name },
-    { label: "E-mail", value: agency?.email },
-    { label: "Telefone", value: formatPhone(agency?.phone_e164) },
-    { label: "Cidade", value: agency?.city ? `${agency.city}${agency.state ? ` · ${agency.state}` : ""}` : null },
-  ];
+  const sections = [
+    { href: "/settings/agency", icon: Building2, title: "Dados da agência", description: "Nome, CNPJ, contatos, logo e especialidades.", show: true },
+    { href: "/settings/team", icon: UsersRound, title: "Equipe", description: "Convites, perfis de acesso e desativação de membros.", show: can(ctx, "members.manage") },
+    { href: "/settings/hours", icon: Clock, title: "Horários de atendimento", description: "Dias, horários e fuso da agência.", show: true },
+    { href: "/settings/pipeline", icon: KanbanSquare, title: "Etapas do pipeline", description: "Renomeie, reordene e crie etapas do CRM.", show: can(ctx, "settings.manage") },
+  ].filter((s) => s.show);
 
   return (
     <PageContainer>
-      <PageHeader title="Configurações" description="Dados da agência, equipe e integrações." />
+      <PageHeader title="Configurações" description="Como a sua agência funciona na plataforma." />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Agência
-              {agency ? <Badge variant="secondary">{STATUS_LABELS[agency.status]}</Badge> : null}
-            </CardTitle>
-            <CardDescription>A edição completa (logo, CNPJ, horários, especialidades) chega com o onboarding completo (fase 4).</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm">
-            {details.map((row) => (
-              <div key={row.label} className="flex justify-between gap-4">
-                <span className="text-muted-foreground">{row.label}</span>
-                <span className="font-medium">{row.value || "—"}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Equipe</CardTitle>
-            <CardDescription>Convites de novos membros chegam na fase 4.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-6">Nome</TableHead>
-                  <TableHead className="pr-6 text-right">Perfil</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {members.map((member) => (
-                  <TableRow key={member.id}>
-                    <TableCell className="pl-6 font-medium">
-                      {member.name}
-                      {member.id === ctx.memberId ? <span className="ml-2 text-xs text-muted-foreground">(você)</span> : null}
-                    </TableCell>
-                    <TableCell className="pr-6 text-right text-muted-foreground">{ROLE_LABELS[member.role]}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+      <div className="flex items-center gap-4 rounded-xl border bg-card p-4">
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- small public logo
+            <img src={logoUrl} alt="" className="size-full object-contain p-1.5" />
+          ) : (
+            <Building2 className="size-6 text-muted-foreground" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-lg font-semibold">{agency?.name}</p>
+          <p className="text-sm text-muted-foreground">{agency?.city ? `${agency.city}${agency.state ? ` · ${agency.state}` : ""}` : "Cidade não informada"}</p>
+        </div>
+        {agency ? <Badge variant="secondary">{STATUS_LABELS[agency.status]}</Badge> : null}
       </div>
 
-      {can(ctx, "settings.manage") ? (
-        <Link
-          href="/settings/pipeline"
-          className="group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors hover:border-primary/30"
-        >
-          <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <KanbanSquare className="size-5" />
-          </div>
-          <div className="flex-1">
-            <p className="font-medium">Etapas do pipeline</p>
-            <p className="text-sm text-muted-foreground">Renomeie, reordene, mude cores ou crie etapas próprias do CRM.</p>
-          </div>
-          <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-        </Link>
-      ) : null}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {sections.map((section) => (
+          <Link
+            key={section.href}
+            href={section.href}
+            className="group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors hover:border-primary/30"
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <section.icon className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">{section.title}</p>
+              <p className="text-sm text-muted-foreground">{section.description}</p>
+            </div>
+            <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        ))}
+      </div>
 
       <Card>
         <CardHeader>
@@ -116,9 +78,7 @@ export default async function SettingsPage() {
             <div key={integration.key} className="flex flex-col gap-2 rounded-lg border p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{integration.label}</span>
-                <Badge variant={integration.configured ? "default" : "outline"}>
-                  {integration.configured ? "Conectado" : "Não configurado"}
-                </Badge>
+                <Badge variant={integration.configured ? "default" : "outline"}>{integration.configured ? "Conectado" : "Não configurado"}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">{integration.description}</p>
               <p className="text-xs text-muted-foreground">{integration.phase ? `Previsto para a fase ${integration.phase}` : "Integração futura"}</p>
