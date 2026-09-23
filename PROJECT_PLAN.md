@@ -1,6 +1,6 @@
 # PROJECT_PLAN.md — SaaS de IA para Agências de Viagens
 
-> **Estado atual (2026-09-23):** fundação, onboarding/equipe, solicitações de viagem e CRM Kanban entregues — fases 1, 2, 3, 4, 7, quase toda a 8 e parte de 5 e 6 (ver §9). Produção: https://saas-turismo-ivory.vercel.app
+> **Estado atual (2026-09-23):** fundação, onboarding/equipe, solicitações, CRM Kanban e Inbox entregues — fases 1, 2, 3, 4, 7, 9, quase toda a 8 e parte de 5 e 6 (ver §9). Produção: https://saas-turismo-ivory.vercel.app
 > IA e WhatsApp adiados por decisão do usuário; hospedagem na Vercel; Supabase como banco principal
 > (migração para Docker/self-hosted avaliada perto do fim do projeto).
 > Referências: [ARCHITECTURE.md](ARCHITECTURE.md) · [DATABASE.md](DATABASE.md) · [SECURITY.md](SECURITY.md) · [ENVIRONMENT.md](ENVIRONMENT.md)
@@ -359,7 +359,8 @@ Fases **1 → 17** entregam o ciclo **WhatsApp → IA qualifica → CRM → cota
 | 6 | 🟡 parcial | 2026-09-23 | CRUD de clientes (busca, paginação, arquivar/restaurar). Pendentes: tags, notas, preferências, viajantes |
 | 7 | ✅ concluída | 2026-09-23 | migrations 0007–0008: pipeline de 13 etapas (semeado por agência), deals, histórico de etapas, solicitações 1:1 com deal, RPC `create_travel_request`; checklist determinístico de completude; avanço automático para “Solicitação completa”; telas de lista, criação e edição; 34/34 testes de banco no Supabase real |
 | 8 | 🟡 quase concluída | 2026-09-23 | Kanban com arrastar e soltar (mouse, toque, teclado) + menu “Mover para”; cards com cliente, destino, datas, passageiros, orçamento, consultor e temperatura; lead score por regras (destino 10, datas 10, passageiros 10, orçamento 15, completa 15; regras de cotação/proposta/intenção entram nas fases 13/16/17); temperatura pelas faixas da agência; personalização de etapas (renomear, cor, ordem, criar/remover próprias). Pendentes: pesos do score configuráveis por agência, Realtime no quadro, tabela de tarefas |
-| 9–30 | ⏳ não iniciada | — | IA (11–14) e WhatsApp (15) aguardam decisão de modelo e credenciais |
+| 9 | ✅ concluída | 2026-09-23 | migration 0011: canais (token do WhatsApp nunca selecionável por clientes), conversas, mensagens (idempotência por `external_message_id`), notificações; mensagens só via RPC; financeiro não lê conversas; troca de modo auditada; resposta humana assume a conversa (D10). Inbox em 3 colunas com Realtime, filtros, responsável, encerrar/reabrir; canal **Simulação** explícito para testar sem WhatsApp; sino de notificações real (“cliente respondeu”). 68/68 testes de banco no Supabase real |
+| 10–30 | ⏳ não iniciada | — | IA (11–14) e WhatsApp (15) aguardam decisão de modelo e credenciais |
 
 ### Decisões registradas
 - D1 `agency_id` ✅ · D5 Vercel ✅ · D6 Supabase na nuvem (sem Docker agora) ✅ · D13 dependências: vitest, libphonenumber-js, @electric-sql/pglite (dev, testes de RLS) ✅
