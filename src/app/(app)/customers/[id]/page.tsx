@@ -18,8 +18,13 @@ import { ArchiveCustomerButton } from "@/modules/customers/components/archive-cu
 import { CustomerForm } from "@/modules/customers/components/customer-form";
 import { getCustomer } from "@/modules/customers/repository";
 import { CUSTOMER_SOURCE_LABELS } from "@/modules/customers/schemas";
+import { CustomerNotes, CustomerPreferences, CustomerTags } from "@/modules/customer-details/components/customer-details";
+import { getCustomerDetails } from "@/modules/customer-details/repository";
 import { StartSimulationButton } from "@/modules/inbox/components/start-simulation-button";
 import { listActiveMembers } from "@/modules/members/repository";
+import { TaskForm, TaskList } from "@/modules/tasks/components/task-components";
+import { listTasks } from "@/modules/tasks/repository";
+import { toTaskRows } from "@/modules/tasks/view-model";
 import { RequestsTable } from "@/modules/travel-requests/components/requests-table";
 import { listCustomerTravelRequests } from "@/modules/travel-requests/repository";
 import { can, requireTenant } from "@/server/auth/tenant";
@@ -30,8 +35,6 @@ export const metadata: Metadata = { title: "Cliente" };
 const HISTORY = [
   { title: "Cotações e propostas", phase: 16 },
   { title: "Reservas e viagens", phase: 20 },
-  { title: "Tarefas e notas", phase: 22 },
-  { title: "Preferências", phase: 12 },
 ];
 
 export default async function CustomerPage(props: PageProps<"/customers/[id]">) {
@@ -42,16 +45,22 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
   if (!z.uuid().safeParse(id).success) notFound();
 
   const db = await createSupabaseServerClient();
-  const [customer, members, requests] = await Promise.all([
+  const [customer, members, requests, details, tasks, settings] = await Promise.all([
     getCustomer(db, ctx, id),
     listActiveMembers(db, ctx),
     can(ctx, "deals.read") ? listCustomerTravelRequests(db, ctx, id) : Promise.resolve([]),
+    getCustomerDetails(db, ctx, id),
+    listTasks(db, ctx, { view: "all", customerId: id, limit: 20 }),
+    db.from("agency_settings").select("timezone").eq("agency_id", ctx.agencyId).maybeSingle(),
   ]);
   if (!customer) notFound();
 
   const canWrite = can(ctx, "customers.write");
   const owner = members.find((m) => m.id === customer.owner_member_id);
   const archived = customer.archived_at !== null;
+  const timeZone = settings.data?.timezone ?? "America/Sao_Paulo";
+  const noteFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone });
+  const canEditDetails = canWrite && !archived;
 
   return (
     <PageContainer>
@@ -156,6 +165,25 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
 
           <Card>
             <CardHeader>
+              <CardTitle>Tags</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomerTags customerId={customer.id} allTags={details.allTags} appliedIds={details.customerTagIds} canEdit={canEditDetails} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferências do viajante</CardTitle>
+              <CardDescription>Memória que a equipe e, depois, a IA usam para personalizar ofertas.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CustomerPreferences customerId={customer.id} preferences={details.preferences} canEdit={canEditDetails} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarClock className="size-4" /> Histórico do viajante
               </CardTitle>
@@ -171,6 +199,36 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Notas internas</CardTitle>
+            <CardDescription>Visíveis apenas para a equipe da agência.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CustomerNotes
+              customerId={customer.id}
+              canEdit={canEditDetails}
+              currentUserId={ctx.userId}
+              canModerate={ctx.role === "owner" || ctx.role === "manager"}
+              notes={details.notes.map((n) => ({ ...n, when: noteFmt.format(new Date(n.createdAt)) }))}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Tarefas</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {can(ctx, "tasks.write") && !archived ? (
+              <TaskForm members={members} fixedCustomerId={customer.id} defaultAssigneeId={customer.owner_member_id ?? ctx.memberId} />
+            ) : null}
+            <TaskList tasks={toTaskRows(tasks, timeZone)} showCustomer={false} emptyText="Nenhuma tarefa aberta para este cliente." />
+          </CardContent>
+        </Card>
       </div>
     </PageContainer>
   );

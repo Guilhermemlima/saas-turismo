@@ -128,6 +128,60 @@ type NotificationRow = {
   created_at: string;
 };
 
+export type TaskStatus = "open" | "done" | "cancelled";
+export type TaskPriority = "low" | "normal" | "high" | "urgent";
+export type TaskType =
+  | "prepare_quote"
+  | "research_hotel"
+  | "send_proposal"
+  | "call_customer"
+  | "confirm_payment"
+  | "send_voucher"
+  | "check_in"
+  | "post_sale"
+  | "follow_up"
+  | "other";
+export type PreferenceCategory = "accommodation" | "flight" | "food" | "travel_style" | "destination" | "budget" | "accessibility" | "other";
+
+type TagRow = { id: string; agency_id: string; name: string; color: string; created_at: string };
+type CustomerTagRow = { agency_id: string; customer_id: string; tag_id: string; created_at: string };
+type NoteRow = {
+  id: string;
+  agency_id: string;
+  customer_id: string;
+  deal_id: string | null;
+  body: string;
+  author_actor: ActorType;
+  author_user_id: string | null;
+  created_at: string;
+};
+type CustomerPreferenceRow = {
+  id: string;
+  agency_id: string;
+  customer_id: string;
+  category: PreferenceCategory;
+  value: string;
+  source: ActorType;
+  created_by: string | null;
+  created_at: string;
+};
+type TaskRow = {
+  id: string;
+  agency_id: string;
+  title: string;
+  description: string | null;
+  task_type: TaskType;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_at: string | null;
+  assigned_member_id: string | null;
+  customer_id: string | null;
+  deal_id: string | null;
+  created_by_actor: ActorType;
+  created_by: string | null;
+  completed_at: string | null;
+} & Timestamps;
+
 type ProfileRow = { id: string; full_name: string; email: string | null; avatar_url: string | null } & Timestamps;
 
 type AgencyRow = {
@@ -372,6 +426,23 @@ export type Database = {
         [Fk<"messages_conversation_fk", ["agency_id", "conversation_id"], "conversations", ["agency_id", "id"]>]
       >;
       notifications: Table<NotificationRow, "agency_id" | "user_id" | "type" | "title">;
+      tags: Table<TagRow, "agency_id" | "name">;
+      customer_tags: Table<
+        CustomerTagRow,
+        "agency_id" | "customer_id" | "tag_id",
+        [Fk<"customer_tags_tag_fk", ["agency_id", "tag_id"], "tags", ["agency_id", "id"]>]
+      >;
+      notes: Table<NoteRow, "agency_id" | "customer_id" | "body">;
+      customer_preferences: Table<CustomerPreferenceRow, "agency_id" | "customer_id" | "category" | "value">;
+      tasks: Table<
+        TaskRow,
+        "agency_id" | "title",
+        [
+          Fk<"tasks_assigned_member_fk", ["agency_id", "assigned_member_id"], "agency_members", ["agency_id", "id"]>,
+          Fk<"tasks_customer_fk", ["agency_id", "customer_id"], "customers", ["agency_id", "id"]>,
+          Fk<"tasks_deal_fk", ["agency_id", "deal_id"], "deals", ["agency_id", "id"]>,
+        ]
+      >;
       pipelines: Table<PipelineRow, "agency_id" | "name">;
       pipeline_stages: Table<
         PipelineStageRow,

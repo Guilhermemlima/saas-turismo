@@ -60,7 +60,7 @@ export const NAVIGATION: NavGroup[] = [
     label: "Operação",
     items: [
       { title: "Agenda", href: "/calendar", icon: CalendarDays, phase: 22, description: "Follow-ups, ligações, viagens e vencimentos" },
-      { title: "Tarefas", href: "/tasks", icon: CheckSquare, phase: 22, description: "Tarefas da equipe" },
+      { title: "Tarefas", href: "/tasks", icon: CheckSquare, description: "Tarefas da equipe" },
       { title: "Automações", href: "/automations", icon: Workflow, permission: "automations.manage", phase: 23, description: "Gatilhos, condições e ações" },
       { title: "Agente IA", href: "/agent", icon: Bot, permission: "agent.configure", phase: 13, description: "Configuração do consultor virtual" },
       { title: "Relatórios", href: "/reports", icon: BarChart3, permission: "reports.view", phase: 26, description: "Funil, vendas e performance" },

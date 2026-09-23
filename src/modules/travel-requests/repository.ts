@@ -5,6 +5,7 @@ import type { StageKey, Tables } from "@/server/db/database.types";
 import type { SupabaseServerClient } from "@/server/db/server-client";
 
 import { scoreLead } from "@/modules/deals/scoring";
+import { ensurePrepareQuoteTask } from "@/modules/tasks/repository";
 
 import { isRequestComplete } from "./completeness";
 import { PRE_QUALIFICATION_STAGES } from "./labels";
@@ -144,6 +145,15 @@ export async function createTravelRequest(
     .eq("agency_id", ctx.agencyId)
     .eq("id", data.deal_id);
   if (scoreError) raise(scoreError);
+
+  if (columns.status === "complete") {
+    await ensurePrepareQuoteTask(db, ctx, {
+      id: data.deal_id,
+      customerId: customer.id,
+      assignedMemberId: input.assigned_member_id ?? ctx.memberId,
+      destination: input.destination,
+    });
+  }
   return data;
 }
 
@@ -187,6 +197,16 @@ export async function updateTravelRequest(
     .eq("agency_id", ctx.agencyId)
     .eq("id", current.deal_id);
   if (dealError) raise(dealError);
+
+  // Became complete now (it was still collecting): the consultant needs to prepare a quote.
+  if (columns.status === "complete" && current.status === "collecting") {
+    await ensurePrepareQuoteTask(db, ctx, {
+      id: current.deal_id,
+      customerId: current.customer_id,
+      assignedMemberId: input.assigned_member_id,
+      destination: input.destination,
+    });
+  }
 
   return { status: columns.status, advancedStage: Boolean(dealUpdate.stage_id) };
 }

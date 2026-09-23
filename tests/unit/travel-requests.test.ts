@@ -154,3 +154,12 @@ describe("travelRequestInputSchema", () => {
     expect(result.error?.issues.some((i) => i.path[0] === field)).toBe(true);
   });
 });
+
+describe("task due dates in the agency time zone", () => {
+  it("converts São Paulo wall-clock time to UTC and back", async () => {
+    const { isoToZonedLocal, zonedLocalToIso } = await import("@/modules/tasks/schemas");
+    expect(zonedLocalToIso("2026-12-10T14:30", "America/Sao_Paulo")).toBe("2026-12-10T17:30:00.000Z");
+    expect(isoToZonedLocal("2026-12-10T17:30:00.000Z", "America/Sao_Paulo")).toBe("2026-12-10T14:30");
+    expect(zonedLocalToIso("2026-12-10T14:30", "America/Manaus")).toBe("2026-12-10T18:30:00.000Z");
+  });
+});

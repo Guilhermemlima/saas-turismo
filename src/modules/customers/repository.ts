@@ -11,10 +11,13 @@ export type Customer = Tables<"customers">;
 export type CustomerListItem = Pick<
   Customer,
   "id" | "full_name" | "phone_e164" | "email" | "city" | "state" | "source" | "last_contact_at" | "created_at" | "archived_at"
-> & { owner: { id: string; display_name: string | null; profile: { full_name: string } | null } | null };
+> & {
+  owner: { id: string; display_name: string | null; profile: { full_name: string } | null } | null;
+  tags: { tag: { id: string; name: string; color: string } | null }[];
+};
 
 const LIST_COLUMNS =
-  "id, full_name, phone_e164, email, city, state, source, last_contact_at, created_at, archived_at, owner:agency_members ( id, display_name, profile:profiles ( full_name ) )";
+  "id, full_name, phone_e164, email, city, state, source, last_contact_at, created_at, archived_at, owner:agency_members ( id, display_name, profile:profiles ( full_name ) ), tags:customer_tags ( tag:tags!customer_tags_tag_fk ( id, name, color ) )";
 
 /** Escapes characters that have meaning inside a PostgREST `or=(...ilike...)` filter. */
 function toIlikePattern(term: string): string {

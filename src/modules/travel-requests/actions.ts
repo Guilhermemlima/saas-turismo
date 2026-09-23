@@ -101,10 +101,11 @@ export async function updateTravelRequestAction(id: string, _prev: ActionState, 
     revalidatePath("/requests");
     revalidatePath(`/requests/${requestId}`);
     revalidatePath(`/customers/${current.customer_id}`);
+    revalidatePath("/tasks");
     return {
       status: "success",
       message: result.advancedStage
-        ? "Solicitação completa! O negócio avançou para “Solicitação completa”."
+        ? "Solicitação completa! O negócio avançou de etapa e a tarefa “Preparar cotação” foi criada."
         : "Alterações salvas.",
     };
   } catch (error) {

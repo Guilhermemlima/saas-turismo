@@ -18,6 +18,7 @@ const ENTITY_ROUTES: Record<string, (id: string) => string> = {
   conversation: (id) => `/inbox/${id}`,
   travel_request: (id) => `/requests/${id}`,
   customer: (id) => `/customers/${id}`,
+  task: () => "/tasks",
 };
 
 export async function listNotifications(db: SupabaseServerClient, ctx: TenantContext) {

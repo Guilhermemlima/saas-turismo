@@ -15,6 +15,7 @@ export const PERMISSIONS = [
   "deals.read",
   "deals.write",
   "requests.write",
+  "tasks.write",
   "quotes.write",
   "quotes.view_margin",
   "payments.write",
@@ -36,11 +37,12 @@ const ROLE_PERMISSIONS: Record<AgencyRole, readonly Permission[]> = {
     "deals.read",
     "deals.write",
     "requests.write",
+    "tasks.write",
     "quotes.write",
     "reports.view",
   ],
-  attendant: ["customers.read", "customers.write", "conversations.read", "deals.read", "deals.write", "requests.write"],
-  financial: ["customers.read", "deals.read", "quotes.view_margin", "payments.write", "reports.view"],
+  attendant: ["customers.read", "customers.write", "conversations.read", "deals.read", "deals.write", "requests.write", "tasks.write"],
+  financial: ["customers.read", "deals.read", "tasks.write", "quotes.view_margin", "payments.write", "reports.view"],
 };
 
 export const ROLE_LABELS: Record<AgencyRole, string> = {

@@ -1,4 +1,4 @@
-import { ArrowRight, CircleCheck, CircleDashed, Lock, Plane, UserPlus, Users, UsersRound } from "lucide-react";
+import { ArrowRight, CheckSquare, CircleCheck, CircleDashed, Lock, Plane, UserPlus, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -10,7 +10,7 @@ import { NAV_ITEMS } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { onboardingProgress } from "@/modules/agencies/onboarding";
 import { countCustomers } from "@/modules/customers/repository";
-import { listActiveMembers } from "@/modules/members/repository";
+import { countMyOpenTasks } from "@/modules/tasks/repository";
 import { countOpenTravelRequests } from "@/modules/travel-requests/repository";
 import { can, requireTenant } from "@/server/auth/tenant";
 import { createSupabaseServerClient } from "@/server/db/server-client";
@@ -34,10 +34,10 @@ export default async function DashboardPage() {
   const canReadCustomers = can(ctx, "customers.read");
 
   const canReadDeals = can(ctx, "deals.read");
-  const [totalCustomers, newCustomers, members, openRequests, { data: agency }] = await Promise.all([
+  const [totalCustomers, newCustomers, myTasks, openRequests, { data: agency }] = await Promise.all([
     canReadCustomers ? countCustomers(db, ctx) : Promise.resolve(null),
     canReadCustomers ? countCustomers(db, ctx, { createdInLastDays: 30 }) : Promise.resolve(null),
-    listActiveMembers(db, ctx),
+    countMyOpenTasks(db, ctx),
     canReadDeals ? countOpenTravelRequests(db, ctx) : Promise.resolve(null),
     db.from("agencies").select("onboarding_completed_steps").eq("id", ctx.agencyId).maybeSingle(),
   ]);
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
     { label: "Clientes ativos", value: totalCustomers, icon: Users, href: "/customers" },
     { label: "Novos clientes (30 dias)", value: newCustomers, icon: UserPlus, href: "/customers" },
     { label: "Solicitações abertas", value: openRequests, icon: Plane, href: "/requests" },
-    { label: "Equipe", value: members.length, icon: UsersRound, href: "/settings" },
+    { label: "Minhas tarefas abertas", value: myTasks, icon: CheckSquare, href: "/tasks" },
   ];
 
   const upcoming = NAV_ITEMS.filter((item) => item.phase).sort((a, b) => (a.phase ?? 0) - (b.phase ?? 0));
