@@ -40,6 +40,8 @@ describe("routes", () => {
   it("treats only explicit paths as public", () => {
     expect(isPublicPath("/login")).toBe(true);
     expect(isPublicPath("/auth/callback")).toBe(true);
+    expect(isPublicPath("/forgot-password")).toBe(true);
+    expect(isPublicPath("/reset-password")).toBe(false);
     expect(isPublicPath("/proposal/abc")).toBe(true);
     expect(isPublicPath("/loginx")).toBe(false);
     expect(isPublicPath("/customers")).toBe(false);

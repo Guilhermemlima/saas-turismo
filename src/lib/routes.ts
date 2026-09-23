@@ -1,5 +1,5 @@
 /** Paths reachable without a session. Everything else requires login. */
-const PUBLIC_PATHS = ["/login", "/signup", "/setup", "/api/health"];
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/setup", "/api/health"];
 const PUBLIC_PREFIXES = ["/auth/", "/proposal/", "/api/webhooks/"];
 
 export function isPublicPath(pathname: string): boolean {

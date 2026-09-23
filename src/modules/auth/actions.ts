@@ -19,14 +19,28 @@ const signInSchema = z.object({
   password: z.preprocess((v) => (typeof v === "string" ? v : ""), z.string().min(1, "Informe a senha.")),
 });
 
+const newPassword = z.preprocess(
+  (v) => (typeof v === "string" ? v : ""),
+  z.string().min(10, "A senha deve ter ao menos 10 caracteres.").max(72, "Senha longa demais."),
+);
+
 const signUpSchema = z.object({
   full_name: requiredText(2, 120, "Nome"),
   email,
-  password: z.preprocess(
-    (v) => (typeof v === "string" ? v : ""),
-    z.string().min(10, "A senha deve ter ao menos 10 caracteres.").max(72, "Senha longa demais."),
-  ),
+  password: newPassword,
 });
+
+const resetRequestSchema = z.object({ email });
+
+const newPasswordSchema = z
+  .object({
+    password: newPassword,
+    password_confirm: z.preprocess((v) => (typeof v === "string" ? v : ""), z.string()),
+  })
+  .refine((data) => data.password === data.password_confirm, {
+    path: ["password_confirm"],
+    message: "As senhas não conferem.",
+  });
 
 export async function signInAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const values = formValues(formData);
@@ -36,6 +50,8 @@ export async function signInAction(_prev: ActionState, formData: FormData): Prom
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
+    // Server log keeps the real reason for support; the UI stays generic.
+    console.warn("[auth] sign-in failed", { code: error.code, status: error.status });
     // Generic message: never reveal whether the e-mail exists.
     const message =
       error.code === "email_not_confirmed"
@@ -85,4 +101,47 @@ export async function signOutAction(): Promise<void> {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+/** Always answers the same way, whether or not the e-mail exists (no account enumeration). */
+export async function requestPasswordResetAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formValues(formData);
+  const parsed = resetRequestSchema.safeParse(values);
+  if (!parsed.success) return validationError(parsed.error, { email: values.email ?? "" });
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${getAppUrl()}/auth/callback?next=/reset-password`,
+  });
+  if (error) console.warn("[auth] password reset request failed", { code: error.code, status: error.status });
+
+  return {
+    status: "success",
+    message: "Se existir uma conta com este e-mail, enviamos um link para criar uma nova senha.",
+  };
+}
+
+export async function updatePasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/forgot-password?error=sessao_expirada");
+
+  const parsed = newPasswordSchema.safeParse(formValues(formData));
+  if (!parsed.success) return validationError(parsed.error);
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  if (error) {
+    console.warn("[auth] password update failed", { code: error.code, status: error.status });
+    const message =
+      error.code === "same_password"
+        ? "A nova senha precisa ser diferente da anterior."
+        : error.code === "weak_password"
+          ? "Senha fraca ou já exposta em vazamentos. Escolha outra."
+          : "Não foi possível alterar a senha. Tente novamente.";
+    return { status: "error", message };
+  }
+
+  redirect("/dashboard");
 }
