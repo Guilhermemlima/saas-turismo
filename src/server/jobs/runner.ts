@@ -6,6 +6,7 @@ import type { Tables } from "@/server/db/database.types";
 import type { SupabaseServiceClient } from "@/server/db/service-client";
 
 import { PermanentJobError } from "./errors";
+import { cleanupQueue } from "./handlers/cleanup";
 import { dispatchDomainEvents } from "./handlers/dispatch-events";
 import { scanOverdueTasks } from "./handlers/overdue-tasks";
 
@@ -19,18 +20,26 @@ type Handler = (db: SupabaseServiceClient, job: Job) => Promise<unknown>;
 export const JOB_HANDLERS: Record<string, Handler> = {
   "tasks.scan_overdue": (db) => scanOverdueTasks(db),
   "events.dispatch": (db) => dispatchDomainEvents(db),
+  "system.cleanup": (db) => cleanupQueue(db),
   "system.noop": async (_db, job) => z.object({}).passthrough().parse(job.payload),
 };
 
-/** Recurring jobs, deduplicated per time bucket so each runs at most once per interval. */
+/**
+ * Recurring jobs. The cron fires every minute; a job with a longer interval is only enqueued during
+ * the first minute of its bucket (the dedupe key covers pending jobs only, so without this window a
+ * finished job would be scheduled again on the next tick).
+ */
 const RECURRING: { type: string; everyMinutes: number }[] = [
   { type: "events.dispatch", everyMinutes: 1 },
   { type: "tasks.scan_overdue", everyMinutes: 15 },
+  { type: "system.cleanup", everyMinutes: 60 },
 ];
 
 export async function scheduleRecurringJobs(db: SupabaseServiceClient, now: Date = new Date()) {
   for (const job of RECURRING) {
-    const bucket = Math.floor(now.getTime() / (job.everyMinutes * 60_000));
+    const intervalMs = job.everyMinutes * 60_000;
+    if (job.everyMinutes > 1 && now.getTime() % intervalMs >= 60_000) continue;
+    const bucket = Math.floor(now.getTime() / intervalMs);
     const { error } = await db.rpc("enqueue_job", { p_type: job.type, p_dedupe_key: `${job.type}:${bucket}`, p_max_attempts: 3 });
     if (error) throw new Error(error.message);
   }

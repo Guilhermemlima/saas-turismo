@@ -45,14 +45,26 @@ describe("runJobs", () => {
 });
 
 describe("scheduleRecurringJobs", () => {
+  it("enqueues longer-interval jobs only in the first minute of their window", async () => {
+    const enqueued = async (iso: string) => {
+      const { db, calls } = fakeDb([]);
+      await scheduleRecurringJobs(db, new Date(iso));
+      return calls.filter((c) => c.name === "enqueue_job").map((c) => c.args.p_type);
+    };
+    expect(await enqueued("2026-09-23T12:00:30Z")).toEqual(["events.dispatch", "tasks.scan_overdue", "system.cleanup"]);
+    expect(await enqueued("2026-09-23T12:07:30Z")).toEqual(["events.dispatch"]);
+    expect(await enqueued("2026-09-23T12:15:10Z")).toEqual(["events.dispatch", "tasks.scan_overdue"]);
+  });
+
   it("dedupes recurring jobs per time bucket", async () => {
     const { db, calls } = fakeDb([]);
     const at = new Date("2026-09-23T12:07:30Z");
     await scheduleRecurringJobs(db, at);
     await scheduleRecurringJobs(db, new Date("2026-09-23T12:07:50Z"));
     const keys = calls.filter((c) => c.name === "enqueue_job").map((c) => c.args.p_dedupe_key);
-    // Same minute → same keys, so the database ignores the second round.
-    expect(keys.slice(0, 2)).toEqual(keys.slice(2, 4));
+    // Same minute → same key, so the database ignores the second round.
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toEqual(keys[1]);
     expect(keys[0]).toMatch(/^events\.dispatch:\d+$/);
   });
 });
