@@ -27,3 +27,6 @@ test-results/
 Thumbs.db
 *.log
 .vercel/
+
+# local tooling config
+.claude/
