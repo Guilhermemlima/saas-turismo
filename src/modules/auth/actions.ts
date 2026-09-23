@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { formValues, validationError, type ActionState } from "@/lib/action-state";
-import { requirePublicEnv } from "@/lib/env";
+import { getAppUrl } from "@/lib/app-url";
 import { requiredText } from "@/lib/form-fields";
 import { safeNextPath } from "@/lib/routes";
 import { createSupabaseServerClient } from "@/server/db/server-client";
@@ -53,14 +53,13 @@ export async function signUpAction(_prev: ActionState, formData: FormData): Prom
   const safeValues = { full_name: values.full_name ?? "", email: values.email ?? "" };
   if (!parsed.success) return validationError(parsed.error, safeValues);
 
-  const { NEXT_PUBLIC_APP_URL } = requirePublicEnv();
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.full_name },
-      emailRedirectTo: `${NEXT_PUBLIC_APP_URL}/auth/callback?next=/onboarding`,
+      emailRedirectTo: `${getAppUrl()}/auth/callback?next=/onboarding`,
     },
   });
 

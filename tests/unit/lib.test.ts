@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { resolveAppUrl } from "@/lib/app-url";
 import { readPublicEnv } from "@/lib/env";
 import { formatDate, initials } from "@/lib/format";
 import { permissionsFor, roleCan } from "@/lib/permissions";
@@ -79,5 +80,34 @@ describe("format", () => {
   it("formats plain dates without timezone shift", () => {
     expect(formatDate("2026-12-10")).toContain("10");
     expect(formatDate(null)).toBe("—");
+  });
+});
+
+describe("resolveAppUrl", () => {
+  it("uses the explicit URL locally", () => {
+    expect(resolveAppUrl({ NEXT_PUBLIC_APP_URL: "http://localhost:3000/" })).toBe("http://localhost:3000");
+  });
+
+  it("ignores a localhost value on Vercel production and uses the production domain", () => {
+    expect(
+      resolveAppUrl({
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+        VERCEL_ENV: "production",
+        VERCEL_PROJECT_PRODUCTION_URL: "saas-turismo-x.vercel.app",
+        VERCEL_URL: "saas-turismo-abc123.vercel.app",
+      }),
+    ).toBe("https://saas-turismo-x.vercel.app");
+  });
+
+  it("keeps an explicit custom domain on Vercel", () => {
+    expect(resolveAppUrl({ NEXT_PUBLIC_APP_URL: "https://app.rumo.com.br", VERCEL_ENV: "production" })).toBe(
+      "https://app.rumo.com.br",
+    );
+  });
+
+  it("uses the deployment URL on previews", () => {
+    expect(resolveAppUrl({ VERCEL_ENV: "preview", VERCEL_URL: "saas-turismo-abc123.vercel.app" })).toBe(
+      "https://saas-turismo-abc123.vercel.app",
+    );
   });
 });
