@@ -1,5 +1,6 @@
-import { Plug } from "lucide-react";
+import { ArrowRight, KanbanSquare, Plug } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { PageContainer, PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ROLE_LABELS } from "@/lib/permissions";
 import { formatPhone } from "@/lib/phone";
 import { listActiveMembers } from "@/modules/members/repository";
-import { requireTenant } from "@/server/auth/tenant";
+import { can, requireTenant } from "@/server/auth/tenant";
 import { createSupabaseServerClient } from "@/server/db/server-client";
 import { getIntegrationStatuses } from "@/server/integrations/registry";
 
@@ -86,6 +87,22 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {can(ctx, "settings.manage") ? (
+        <Link
+          href="/settings/pipeline"
+          className="group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors hover:border-primary/30"
+        >
+          <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+            <KanbanSquare className="size-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium">Etapas do pipeline</p>
+            <p className="text-sm text-muted-foreground">Renomeie, reordene, mude cores ou crie etapas próprias do CRM.</p>
+          </div>
+          <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      ) : null}
 
       <Card>
         <CardHeader>
