@@ -18,6 +18,7 @@ import { ArchiveCustomerButton } from "@/modules/customers/components/archive-cu
 import { CustomerForm } from "@/modules/customers/components/customer-form";
 import { getCustomer } from "@/modules/customers/repository";
 import { CUSTOMER_SOURCE_LABELS } from "@/modules/customers/schemas";
+import { StartSimulationButton } from "@/modules/inbox/components/start-simulation-button";
 import { listActiveMembers } from "@/modules/members/repository";
 import { RequestsTable } from "@/modules/travel-requests/components/requests-table";
 import { listCustomerTravelRequests } from "@/modules/travel-requests/repository";
@@ -27,7 +28,6 @@ import { createSupabaseServerClient } from "@/server/db/server-client";
 export const metadata: Metadata = { title: "Cliente" };
 
 const HISTORY = [
-  { title: "Conversas", phase: 9 },
   { title: "Cotações e propostas", phase: 16 },
   { title: "Reservas e viagens", phase: 20 },
   { title: "Tarefas e notas", phase: 22 },
@@ -94,7 +94,10 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
             </p>
           </div>
         </div>
-        {can(ctx, "customers.archive") ? <ArchiveCustomerButton customerId={customer.id} archived={archived} /> : null}
+        <div className="flex flex-wrap gap-2">
+          {can(ctx, "conversations.read") && !archived ? <StartSimulationButton customerId={customer.id} /> : null}
+          {can(ctx, "customers.archive") ? <ArchiveCustomerButton customerId={customer.id} archived={archived} /> : null}
+        </div>
       </div>
 
       {can(ctx, "deals.read") ? (

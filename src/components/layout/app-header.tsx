@@ -1,24 +1,27 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { findNavItem } from "@/config/navigation";
 
-export function AppHeader({ agencyName, canSearchCustomers }: { agencyName: string; canSearchCustomers: boolean }) {
+import { NotificationsMenu, type HeaderNotification } from "./notifications-menu";
+
+export function AppHeader({
+  agencyName,
+  canSearchCustomers,
+  notifications,
+  unreadNotifications,
+}: {
+  agencyName: string;
+  canSearchCustomers: boolean;
+  notifications: HeaderNotification[];
+  unreadNotifications: number;
+}) {
   const pathname = usePathname();
   const current = findNavItem(pathname);
 
@@ -47,21 +50,7 @@ export function AppHeader({ agencyName, canSearchCustomers }: { agencyName: stri
           </form>
         ) : null}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Notificações" />}>
-            <Bell className="size-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Notificações</DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-              Nenhuma notificação. Alertas de leads, propostas e viagens chegam aqui quando os módulos forem ativados.
-            </p>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
+        <NotificationsMenu items={notifications} unread={unreadNotifications} />
         <ThemeToggle />
       </div>
     </header>

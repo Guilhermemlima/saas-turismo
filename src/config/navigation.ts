@@ -41,7 +41,6 @@ export const NAVIGATION: NavGroup[] = [
         href: "/inbox",
         icon: MessagesSquare,
         permission: "conversations.read",
-        phase: 9,
         description: "Central de conversas do WhatsApp com IA e humanos",
       },
     ],

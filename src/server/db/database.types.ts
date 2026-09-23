@@ -43,6 +43,91 @@ export type StageKey =
   | "post_sale"
   | "lost";
 
+export type ChannelType = "whatsapp" | "simulator";
+export type ChannelStatus = "pending" | "connected" | "disconnected" | "error";
+export type ConversationMode = "ai" | "human";
+export type ConversationStatus = "open" | "pending" | "closed";
+export type MessageDirection = "inbound" | "outbound";
+export type MessageSender = "customer" | "ai" | "human" | "system";
+export type MessageStatus = "received" | "queued" | "sending" | "sent" | "delivered" | "read" | "failed";
+export type MessageKind = "text" | "image" | "audio" | "video" | "document" | "location" | "interactive" | "template" | "reaction" | "unsupported";
+export type NotificationType =
+  | "hot_lead"
+  | "new_request"
+  | "quote_needed"
+  | "proposal_viewed"
+  | "customer_replied"
+  | "proposal_accepted"
+  | "trip_upcoming"
+  | "followup_overdue"
+  | "handoff_requested"
+  | "system";
+
+type ChannelRow = {
+  id: string;
+  agency_id: string;
+  type: ChannelType;
+  status: ChannelStatus;
+  display_name: string;
+  phone_e164: string | null;
+  wa_phone_number_id: string | null;
+  connected_at: string | null;
+  last_error: string | null;
+} & Timestamps;
+
+type ConversationRow = {
+  id: string;
+  agency_id: string;
+  channel_id: string;
+  customer_id: string;
+  status: ConversationStatus;
+  mode: ConversationMode;
+  assigned_member_id: string | null;
+  is_simulation: boolean;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  last_inbound_at: string | null;
+  unread_count: number;
+  summary: string | null;
+  handoff_reason: string | null;
+  handoff_at: string | null;
+  closed_at: string | null;
+} & Timestamps;
+
+type MessageRow = {
+  id: string;
+  agency_id: string;
+  conversation_id: string;
+  channel_id: string;
+  direction: MessageDirection;
+  sender: MessageSender;
+  sender_user_id: string | null;
+  kind: MessageKind;
+  body: string | null;
+  media: Json | null;
+  external_message_id: string | null;
+  status: MessageStatus;
+  error_code: string | null;
+  error_detail: string | null;
+  created_at: string;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+};
+
+type NotificationRow = {
+  id: string;
+  agency_id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  read_at: string | null;
+  created_at: string;
+};
+
 type ProfileRow = { id: string; full_name: string; email: string | null; avatar_url: string | null } & Timestamps;
 
 type AgencyRow = {
@@ -271,6 +356,22 @@ export type Database = {
         ]
       >;
       agency_invitations: Table<AgencyInvitationRow, "agency_id" | "email" | "role" | "token_hash" | "invited_by">;
+      channels: Table<ChannelRow, "agency_id" | "type" | "display_name">;
+      conversations: Table<
+        ConversationRow,
+        "agency_id" | "channel_id" | "customer_id",
+        [
+          Fk<"conversations_customer_fk", ["agency_id", "customer_id"], "customers", ["agency_id", "id"]>,
+          Fk<"conversations_channel_fk", ["agency_id", "channel_id"], "channels", ["agency_id", "id"]>,
+          Fk<"conversations_assigned_member_fk", ["agency_id", "assigned_member_id"], "agency_members", ["agency_id", "id"]>,
+        ]
+      >;
+      messages: Table<
+        MessageRow,
+        "agency_id" | "conversation_id" | "channel_id" | "direction" | "sender" | "status",
+        [Fk<"messages_conversation_fk", ["agency_id", "conversation_id"], "conversations", ["agency_id", "id"]>]
+      >;
+      notifications: Table<NotificationRow, "agency_id" | "user_id" | "type" | "title">;
       pipelines: Table<PipelineRow, "agency_id" | "name">;
       pipeline_stages: Table<
         PipelineStageRow,
@@ -317,6 +418,8 @@ export type Database = {
         Args: { p_token_hash: string };
         Returns: { agency_name: string; role: AgencyRole; email: string; status: "pending" | "accepted" | "expired" | "revoked" }[];
       };
+      start_simulated_conversation: { Args: { p_customer_id: string }; Returns: string };
+      post_conversation_message: { Args: { p_conversation_id: string; p_body: string; p_as_customer?: boolean }; Returns: string };
       accept_invitation: { Args: { p_token_hash: string }; Returns: string };
       mark_onboarding_step: { Args: { p_agency: string; p_step: number }; Returns: undefined };
       create_travel_request: {
