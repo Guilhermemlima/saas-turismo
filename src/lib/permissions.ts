@@ -16,6 +16,7 @@ export const PERMISSIONS = [
   "deals.write",
   "requests.write",
   "tasks.write",
+  "quotes.read",
   "quotes.write",
   "quotes.view_margin",
   "payments.write",
@@ -38,11 +39,14 @@ const ROLE_PERMISSIONS: Record<AgencyRole, readonly Permission[]> = {
     "deals.write",
     "requests.write",
     "tasks.write",
+    "quotes.read",
     "quotes.write",
+    // SECURITY.md: "configurável" — on by default, since consultants price the items themselves.
+    "quotes.view_margin",
     "reports.view",
   ],
   attendant: ["customers.read", "customers.write", "conversations.read", "deals.read", "deals.write", "requests.write", "tasks.write"],
-  financial: ["customers.read", "deals.read", "tasks.write", "quotes.view_margin", "payments.write", "reports.view"],
+  financial: ["customers.read", "deals.read", "tasks.write", "quotes.read", "quotes.view_margin", "payments.write", "reports.view"],
 };
 
 export const ROLE_LABELS: Record<AgencyRole, string> = {

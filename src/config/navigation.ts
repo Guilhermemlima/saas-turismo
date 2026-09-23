@@ -50,7 +50,7 @@ export const NAVIGATION: NavGroup[] = [
     items: [
       { title: "CRM", href: "/crm", icon: KanbanSquare, permission: "deals.read", description: "Pipeline de oportunidades de viagem" },
       { title: "Solicitações", href: "/requests", icon: Plane, permission: "deals.read", description: "Pedidos de viagem qualificados" },
-      { title: "Cotações", href: "/quotes", icon: Receipt, permission: "quotes.write", phase: 16, description: "Montagem de opções de voo, hotel e serviços" },
+      { title: "Cotações", href: "/quotes", icon: Receipt, permission: "quotes.read", description: "Montagem de opções de voo, hotel e serviços" },
       { title: "Propostas", href: "/proposals", icon: FileText, permission: "deals.read", phase: 17, description: "Propostas comerciais com link rastreável" },
       { title: "Reservas", href: "/bookings", icon: Ticket, permission: "deals.read", phase: 20, description: "Viagens vendidas, pagamentos e documentos" },
       { title: "Clientes", href: "/customers", icon: Users, permission: "customers.read", description: "Viajantes e histórico" },

@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarRange, Users, Wallet } from "lucide-react";
+import { ArrowLeft, CalendarRange, Plus, Users, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -14,6 +14,8 @@ import { formatDateTime } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
 import { listActiveMembers } from "@/modules/members/repository";
+import { priceRange, QuoteStatusBadge } from "@/modules/quotes/components/quotes-table";
+import { listDealQuotes } from "@/modules/quotes/repository";
 import { updateTravelRequestAction } from "@/modules/travel-requests/actions";
 import { ArchiveRequestButton } from "@/modules/travel-requests/components/archive-request-button";
 import { RequestStatusBadge, StageBadge } from "@/modules/travel-requests/components/badges";
@@ -37,6 +39,7 @@ export default async function RequestPage(props: PageProps<"/requests/[id]">) {
   const db = await createSupabaseServerClient();
   const [request, members] = await Promise.all([getTravelRequest(db, ctx, id), listActiveMembers(db, ctx)]);
   if (!request) notFound();
+  const quotes = can(ctx, "quotes.read") ? await listDealQuotes(db, ctx, request.deal_id) : null;
 
   const canWrite = can(ctx, "requests.write");
   const closed = request.status === "archived" || request.status === "cancelled";
@@ -127,6 +130,33 @@ export default async function RequestPage(props: PageProps<"/requests/[id]">) {
 
         <div className="flex flex-col gap-6">
           <CompletenessCard request={request} />
+          {quotes ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Cotações</CardTitle>
+                <CardDescription>{quotes.length ? "Opções montadas para esta viagem." : "Nenhuma cotação ainda."}</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 text-sm">
+                {quotes.map((q) => (
+                  <Link key={q.id} href={`/quotes/${q.id}`} className="grid gap-1 rounded-lg border p-3 hover:bg-muted/50">
+                    <span className="font-medium">{q.title}</span>
+                    <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <QuoteStatusBadge status={q.status} />
+                      {priceRange(q.options, q.currency) ?? "Sem itens"}
+                    </span>
+                  </Link>
+                ))}
+                {can(ctx, "quotes.write") && !closed ? (
+                  <Link
+                    href={`/quotes/new?deal=${request.deal_id}&from=/requests/${request.id}`}
+                    className={buttonVariants({ variant: "outline", className: "w-fit" })}
+                  >
+                    <Plus /> Nova cotação
+                  </Link>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
           <Card>
             <CardHeader>
               <CardTitle>Registro</CardTitle>
